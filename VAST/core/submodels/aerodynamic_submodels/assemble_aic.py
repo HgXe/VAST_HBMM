@@ -82,7 +82,7 @@ class AssembleAic(Model):
                 vortex_coords_names.append(wake_vortex_pts_names[j])
                 eval_pt_shapes.append(bd_coll_pts_shapes[i])
                 vortex_coords_shapes.append(wake_vortex_pts_shapes[j])
-                out_name = full_aic_name + str(i) + str(j)
+                out_name = full_aic_name + str(i) + '_' + str(j)
                 output_names.append(out_name)
 
         # print('assemble_aic line 84 eval_pt_names', eval_pt_names)

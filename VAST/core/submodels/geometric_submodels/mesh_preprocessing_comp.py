@@ -125,7 +125,7 @@ class MeshPreprocessingComp(ModuleCSDL):
             elif problem_type == 'prescribed_wake':
                 frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
                 w = self.declare_variable('w', shape=(num_nodes, 1))
-                fs  = self.create_output('fs', shape=(num_nodes, 3))
+                fs  = self.create_output(surface_name + '_fs', shape=(num_nodes, 3))
                 fs[:,0] = -frame_vel[:,0]
                 fs[:,1] = -frame_vel[:,1]
                 # fs[:,2] = -frame_vel[:,2]

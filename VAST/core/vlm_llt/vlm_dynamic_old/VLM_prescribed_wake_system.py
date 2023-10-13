@@ -83,7 +83,8 @@ class ODESystemModel(csdl.Model):
         m = AdapterComp(
             surface_names=surface_names,
             surface_shapes=ode_surface_shapes,
-            frame=self.parameters['frame'],
+            # frame=self.parameters['frame'],
+            # frame='inertial',
         )
         self.add(m, name='adapter_comp')
 

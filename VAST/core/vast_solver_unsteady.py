@@ -114,7 +114,8 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
                                surface_names=self.surface_names,
                                surface_shapes=self.surface_shapes,
                                delta_t=self.delta_t,
-                               nt=self.nt)
+                               nt=self.nt,
+                               frame = self.frame)
         return model
 
 class ProfileOpModel(csdl.Model):
@@ -133,6 +134,7 @@ class ProfileOpModel(csdl.Model):
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('delta_t')
         self.parameters.declare('nt')
+        self.parameters.declare('frame', default='wing_fixed')
 
     def define(self):
         num_nodes = self.parameters['num_nodes']
@@ -140,6 +142,7 @@ class ProfileOpModel(csdl.Model):
         surface_names = self.parameters['surface_names']
         h_stepsize = self.parameters['delta_t']
         nt = self.parameters['nt']
+        frame = self.parameters['frame']
 
 
         ode_surface_shapes = [(nt-1, ) + item for item in surface_shapes]
@@ -162,7 +165,7 @@ class ProfileOpModel(csdl.Model):
         m = AdapterComp(
             surface_names=surface_names,
             surface_shapes=ode_surface_shapes,
-            frame='wing_fixed',
+            frame=frame,
         )
         self.add(m, name='adapter_comp')
 
@@ -890,26 +893,27 @@ if __name__ == '__main__':
     ########################################
     # define mesh here
     ########################################
-    nx = 2
+    nx = 29
     ny = 5 # actually 14 in the book
 
 
-    chord = 1
+    AR = 8
     span = 12
+    chord = span/AR
     # num_nodes = 9*16
     # num_nodes = 16 *2
-    num_nodes = 30
+    num_nodes = 5
     # num_nodes = 3
     nt = num_nodes+1
 
-    alpha = np.deg2rad(5)
+    alpha = np.deg2rad(15)
 
     # define the direction of the flapping motion (hardcoding for now)
 
     # u_val = np.concatenate((np.array([0.01, 0.5,1.]),np.ones(num_nodes-3))).reshape(num_nodes,1)
     # u_val = np.ones(num_nodes).reshape(num_nodes,1)
     u_vel = np.ones(num_nodes).reshape(num_nodes,1)*10
-    w_vel = np.ones((num_nodes,1)) *np.sin(alpha)*10
+    w_vel = np.zeros((num_nodes,1)) *np.sin(alpha)*10
     # theta_val = np.linspace(0,alpha,num=num_nodes)
     theta_val = np.ones((num_nodes, 1))*alpha
 
@@ -1007,15 +1011,15 @@ if __name__ == '__main__':
                               profile_parameters=None)
     model_csdl = model.assemble()
 
-    # submodel = ProfileOpModel(
-    #     num_nodes = num_nodes,
-    #     surface_names = surface_names,
-    #     surface_shapes = surface_shapes,
-    #     delta_t = h_stepsize,
-    #     nt = num_nodes + 1
-    # )
+    submodel = ProfileOpModel(
+        num_nodes = num_nodes,
+        surface_names = surface_names,
+        surface_shapes = surface_shapes,
+        delta_t = h_stepsize,
+        nt = num_nodes + 1
+    )
 
-    # model_csdl.add(submodel, name='post_processing')
+    model_csdl.add(submodel, name='post_processing')
 
 
 

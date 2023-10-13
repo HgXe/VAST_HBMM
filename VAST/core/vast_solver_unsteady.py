@@ -47,6 +47,7 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.compressible = self.parameters['compressible']
         self.Ma = self.parameters['Ma']
         self.name = self.parameters['name']
+        self.symmetry = self.parameters['symmetry']
     def evaluate(self):
         self.assign_atributes()
         num_nodes = self.num_nodes
@@ -101,8 +102,8 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
             ####################################
             gamma_w_int_name = surface_name + '_gamma_w_int'
             wake_coords_int_name = surface_name + '_wake_coords_int'
-            self.residual_names.append((gamma_w_name,dgammaw_dt_name,(num_nodes, ny-1)))
-            self.residual_names.append((wing_wake_coords_name,dwake_coords_dt_name,(num_nodes,ny,3)))
+            self.residual_names.append((gamma_w_name,dgammaw_dt_name,(num_nodes-1, ny-1)))
+            self.residual_names.append((wing_wake_coords_name,dwake_coords_dt_name,(num_nodes-1,ny,3)))
 
         self.inputs = {}
         self.arguments = {}
@@ -114,8 +115,116 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
                                surface_names=self.surface_names,
                                surface_shapes=self.surface_shapes,
                                delta_t=self.delta_t,
-                               nt=self.nt)
+                               nt=self.num_nodes,
+                               symmetry=self.symmetry,
+                               Ma=self.Ma,
+                               compressible=self.compressible,
+                               frame=self.frame)
         return model
+
+
+class PostProcessor(csdl.Model):
+    def initialize(self):
+        self.parameters.declare('num_nodes', default=1)
+        self.parameters.declare('surface_names', types=list)
+        self.parameters.declare('surface_shapes', types=list)
+        self.parameters.declare('delta_t')
+        self.parameters.declare('nt')
+        self.parameters.declare('symmetry',default=False)
+        self.parameters.declare('Ma',default=0.84)
+        self.parameters.declare('frame', default='wing_fixed')
+
+    def define(self):
+        num_nodes = self.parameters['num_nodes']
+        surface_shapes = self.parameters['surface_shapes']
+        surface_names = self.parameters['surface_names']
+        h_stepsize = self.parameters['delta_t']
+        nt = self.parameters['nt']
+        num_times = nt - 1
+        symmetry = self.parameters['symmetry']
+        frame = self.parameters['frame']
+
+
+        ode_surface_shapes = [(nt-1, ) + item for item in surface_shapes]
+        eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+        op_surface_names = ['op_' + x for x in surface_names]
+        eval_pts_shapes =        [
+            tuple(map(lambda i, j: i - j, item, (0, 1, 1, 0)))
+            for item in ode_surface_shapes
+        ]
+
+        self.add(MeshPreprocessingComp(surface_names=surface_names,
+                                       surface_shapes=ode_surface_shapes,
+                                       eval_pts_location=0.25,
+                                       eval_pts_option='auto',
+                                       delta_t=h_stepsize,
+                                       problem_type='prescribed_wake',
+                                       Ma=self.parameters['Ma'],),
+                 name='MeshPreprocessing_comp')
+
+        m = AdapterComp(
+            surface_names=surface_names,
+            surface_shapes=ode_surface_shapes,
+            frame=frame,
+        )
+        self.add(m, name='adapter_comp')
+
+        self.add(CombineGammaW(surface_names=op_surface_names, surface_shapes=ode_surface_shapes, n_wake_pts_chord=num_times-1),
+            name='combine_gamma_w')
+
+        self.add(SolveMatrix(n_wake_pts_chord=num_times-1,
+                                surface_names=surface_names,
+                                bd_vortex_shapes=ode_surface_shapes,
+                                delta_t=h_stepsize,
+                                problem_type='prescribed_wake',
+                                end=True,
+                                symmetry=self.parameters['symmetry'],),
+                    name='solve_gamma_b_group')
+        self.add(SeperateGammab(surface_names=surface_names,
+                                surface_shapes=ode_surface_shapes),
+                 name='seperate_gamma_b')
+
+        eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+        eval_pts_shapes =        [
+            tuple(map(lambda i, j: i - j, item, (0, 1, 1, 0)))
+            for item in ode_surface_shapes
+        ]
+
+        # compute lift and drag
+        submodel = HorseshoeCirculations(
+            surface_names=surface_names,
+            surface_shapes=ode_surface_shapes,
+        )
+        self.add(submodel, name='compute_horseshoe_circulation')
+
+        submodel = EvalPtsVel(
+            eval_pts_names=eval_pts_names,
+            eval_pts_shapes=eval_pts_shapes,
+            eval_pts_option='auto',
+            eval_pts_location=0.25,
+            surface_names=surface_names,
+            surface_shapes=ode_surface_shapes,
+            n_wake_pts_chord=num_times-1,
+            delta_t=h_stepsize,
+            problem_type='prescribed_wake',
+            eps=4e-5,
+            symmetry=self.parameters['symmetry'],
+        )
+        self.add(submodel, name='EvalPtsVel')
+
+        submodel = ThrustDrag(
+            surface_names=surface_names,
+            surface_shapes=ode_surface_shapes,
+            eval_pts_option='auto',
+            eval_pts_shapes=eval_pts_shapes,
+            eval_pts_names=eval_pts_names,
+            sprs=None,
+            coeffs_aoa=None,
+            coeffs_cd=None,
+            delta_t=h_stepsize,
+        )
+        self.add(submodel, name='ThrustDrag')
+
 
 class ProfileOpModel(csdl.Model):
     '''
@@ -133,6 +242,7 @@ class ProfileOpModel(csdl.Model):
         self.parameters.declare('surface_shapes', types=list)
         self.parameters.declare('delta_t')
         self.parameters.declare('nt')
+        self.parameters.declare('symmetry',default=False)
 
     def define(self):
         num_nodes = self.parameters['num_nodes']
@@ -140,6 +250,7 @@ class ProfileOpModel(csdl.Model):
         surface_names = self.parameters['surface_names']
         h_stepsize = self.parameters['delta_t']
         nt = self.parameters['nt']
+        symmetry = self.parameters['symmetry']
 
 
         ode_surface_shapes = [(nt-1, ) + item for item in surface_shapes]
@@ -174,8 +285,8 @@ class ProfileOpModel(csdl.Model):
                                 bd_vortex_shapes=ode_surface_shapes,
                                 delta_t=h_stepsize,
                                 problem_type='prescribed_wake',
-                                # end=True,
-                                symmetry=False,),
+                                end=True,
+                                symmetry=symmetry,),
                     name='solve_gamma_b_group')
         self.add(SeperateGammab(surface_names=surface_names,
                                 surface_shapes=ode_surface_shapes),

@@ -28,8 +28,8 @@ setup(
         'setuptools',
         'wheel',
         'twine',
-        'python_csdl_backend @ git+https://github.com/LSDOlab/python_csdl_backend',
-        'csdl @ git+https://github.com/LSDOlab/csdl',  
+        # 'python_csdl_backend @ git+https://github.com/LSDOlab/python_csdl_backend',
+        # 'csdl @ git+https://github.com/LSDOlab/csdl',  
         # 'ozone @ git+https://github.com/LSDOlab/ozone', 
     ],
     classifiers=[

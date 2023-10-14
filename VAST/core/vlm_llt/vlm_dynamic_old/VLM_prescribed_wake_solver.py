@@ -3,7 +3,7 @@ import time
 import matplotlib.pyplot as plt
 
 from VAST.core.vlm_llt.vlm_dynamic_old.VLM_prescribed_wake_system import ODESystemModel
-from VAST.core.submodels.output_submodels.vlm_post_processing.compute_thrust_drag_dynamic import ThrustDrag
+from VAST.core.submodels.output_submodels.vlm_post_processing.compute_thrust_drag_dynamic_old import ThrustDrag
 
 from ozone.api import ODEProblem
 import csdl

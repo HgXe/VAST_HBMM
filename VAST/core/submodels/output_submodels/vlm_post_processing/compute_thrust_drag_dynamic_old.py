@@ -178,26 +178,10 @@ class ThrustDrag(Model):
 
             # panel_forces_dynamic = rho_expand * dcirculation_repeat_dt* c_bar_exp * csdl.cross(
                 # velocities, bd_vec, axis=2)
-            panel_forces_dynamic = self.create_output('panel_forces_dynamic', shape=panel_forces.shape)
-            # print(panel_forces_dynamic.shape)
-            start = 0
-            for i in range(len(surface_names)):
-                surface_name = surface_names[i]
-                surface_shape = surface_shapes[i] # num_nodes, nx, ny, 3
-                nx, ny = surface_shape[1], surface_shape[2]
-                wing_mesh_size = (nx-1)*(ny-1)
-                end = start + wing_mesh_size
-                # print(surface_shape)
 
-                normals = self.declare_variable(surface_name + '_bd_vtx_normals', shape=(num_nodes, wing_mesh_size, 3))
-
-                panel_forces_dynamic[:,start:end, :] = rho_expand[:,start:end,:]*dcirculation_repeat_dt[:,start:end,:]*normals
-                start += wing_mesh_size
-            # exit()
-
-            # normals = self.declare_variable(surface_names[0] + '_bd_vtx_normals',shape=(num_nodes,system_size,3))
+            normals = self.declare_variable(surface_names[0] + '_bd_vtx_normals',shape=(num_nodes,system_size,3))
             # NOTE: this direction needs some verification
-            # panel_forces_dynamic = rho_expand * dcirculation_repeat_dt * normals
+            panel_forces_dynamic = rho_expand * dcirculation_repeat_dt * normals
 
             panel_forces_x = panel_forces[:, :, 0] + panel_forces_dynamic[:, :, 0]
             panel_forces_y = panel_forces[:, :, 1] + panel_forces_dynamic[:, :, 1]
@@ -206,7 +190,7 @@ class ThrustDrag(Model):
             self.register_output('panel_forces_y', panel_forces_y)
             self.register_output('panel_forces_z', panel_forces_z)
             # print('compute lift drag panel_forces', panel_forces.shape)
-            
+            b = frame_vel[:, 0]**2 + frame_vel[:, 1]**2 + frame_vel[:, 2]**2
 
             L_panel = -panel_forces_x * sina + panel_forces_z * cosa
             D_panel = panel_forces_x * cosa * cosb + panel_forces_z * sina * cosb - panel_forces_y * sinb
@@ -215,10 +199,8 @@ class ThrustDrag(Model):
 
             s_panels_sum = csdl.reshape(csdl.sum(s_panels_all, axes=(1, )),
                                         (num_nodes, 1))
-            
 
 
-            b = frame_vel[:, 0]**2 + frame_vel[:, 1]**2 + frame_vel[:, 2]**2
 
             start = 0
             for i in range(len(surface_names)):
@@ -354,7 +336,7 @@ class ThrustDrag(Model):
 
             panel_forces_all = panel_forces + panel_forces_dynamic
             self.register_output('panel_forces_all', panel_forces_all)
-            # self.register_output('panel_forces_dynamic', panel_forces_dynamic)
+            self.register_output('panel_forces_dynamic', panel_forces_dynamic)
             panel_forces_all_mag = csdl.sum(panel_forces_all**2,axes=(2,))**0.5
             velocities_mag = csdl.sum(velocities**2,axes=(2,))**0.5
             panel_power = csdl.sum(panel_forces_all_mag*velocities_mag,axes=(1,))

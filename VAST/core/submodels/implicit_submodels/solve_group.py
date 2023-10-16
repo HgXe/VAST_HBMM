@@ -1,4 +1,4 @@
-from csdl import Model, ImplicitOperation, ScipyKrylov, NewtonSolver, NonlinearBlockGS
+from csdl import Model, ImplicitOperation, ScipyKrylov, NewtonSolver, NonlinearBlockGS, DirectSolver
 import numpy as np
 # from csdl_om import Simulator
 import csdl
@@ -149,7 +149,7 @@ class SolveMatrix(Model):
                 maxiter=5,
                 iprint=True,
             )
-            solve.linear_solver = ScipyKrylov()
+            solve.linear_solver = DirectSolver()
 
             MTX = self.declare_variable('MTX',
                                         shape=(num_nodes, M_shape_row,
@@ -209,7 +209,7 @@ class SolveMatrix(Model):
                 maxiter=10,
                 iprint=True,
             )
-            solve.linear_solver = ScipyKrylov()
+            solve.linear_solver = DirectSolver()
 
             aic_bd_proj = self.declare_variable('aic_bd_proj',
                                         shape=(num_nodes, aic_shape_row,

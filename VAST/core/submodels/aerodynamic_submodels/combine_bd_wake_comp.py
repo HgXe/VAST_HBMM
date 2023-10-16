@@ -69,8 +69,7 @@ S
 
             if self.parameters['problem_type'] == 'fixed_wake':
                 # for the fixed wake option, the wake gamma is the trailing edge gamma_b
-                surface_gamma_w = surface_gamma_b[:,
-                                                (nx - 1) * (ny - 1) - (ny - 1):]
+                surface_gamma_w = surface_gamma_b[:,(nx - 1) * (ny - 1) - (ny - 1):]
                 # compute output bd_n_wake_coords
                 bd_n_wake_coords = self.create_output(
                     bd_n_wake_coords_name,

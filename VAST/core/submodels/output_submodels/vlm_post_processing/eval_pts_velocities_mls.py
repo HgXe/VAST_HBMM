@@ -62,35 +62,18 @@ class EvalPtsVel(Model):
         eval_pts_option = self.parameters['eval_pts_option']
 
         num_nodes = surface_shapes[0][0]
-
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
-        delta_t = self.parameters['delta_t']
+        delta_t = self.parameters['delta_t'] # NOT USED
 
         bdnwake_coords_names = [x + '_bdnwake_coords' for x in surface_names]
-        if eval_pts_option=='auto':
-            eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
-
-        else:
-            eval_pts_names=self.parameters['eval_pts_names']
-
-        eval_induced_velocities_col_names = [
-            x + '_eval_pts_induced_vel_col' for x in eval_pts_names
-        ]
-
-        wake_coords_reshaped_names = [
-            x + '_wake_coords_reshaped' for x in surface_names
-        ]
+        wake_coords_reshaped_names = [x + '_wake_coords_reshaped' for x in surface_names]
 
         wake_vortex_pts_shapes = [
             tuple((num_nodes, n_wake_pts_chord, item[2], 3))
-            for item in surface_shapes
-        ]
-        if eval_pts_option=='auto':
-            eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
-        else:
-            eval_pts_names=self.parameters['eval_pts_names']
+            for item in surface_shapes]
 
-        
+        circulation_names = [x + '_bdnwake_gamma' for x in surface_names]
+
         if self.parameters['problem_type'] == 'fixed_wake':
             bdnwake_shapes = [
                 (num_nodes, x[1] + y[1] - 1, x[2], 3)
@@ -118,33 +101,34 @@ class EvalPtsVel(Model):
                 x + '_eval_pts_induced_vel' for x in surface_names
             ]
             v_total_eval_names = [x + '_eval_total_vel' for x in surface_names]
-        circulation_names = [x + '_bdnwake_gamma' for x in surface_names]
-        if eval_pts_option=='auto':
-            eval_pts_shapes = [(num_nodes, x[1] - 1, x[2] - 1, 3) for x in surface_shapes]
 
         aic_shapes = [(num_nodes, x[1] * x[2] * (y[1] - 1) * (y[2] - 1), 3)
                       for x, y in zip(eval_pts_shapes, bdnwake_shapes)]
 
+        if eval_pts_option=='auto':
+            eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
 
+        else:
+            eval_pts_names=self.parameters['eval_pts_names']
 
+        if eval_pts_option=='auto':
+            eval_pts_shapes = [(num_nodes, x[1] - 1, x[2] - 1, 3) for x in surface_shapes]
 
-        eval_vel_shapes = [(num_nodes, x[1] * x[2], 3)
-                           for x in eval_pts_shapes]
+        eval_vel_shapes = [(num_nodes, x[1] * x[2], 3) for x in eval_pts_shapes]
 
         self.add(BdnWakeCombine(
             surface_names=surface_names,
             surface_shapes=surface_shapes,
             n_wake_pts_chord=n_wake_pts_chord,
-            problem_type=self.parameters['problem_type'],
-
-        ),
-                 name='BdnWakeCombine')
+            problem_type=self.parameters['problem_type'],),name='BdnWakeCombine')
 
 
         #!TODO:fix this for mls
         # !fixed!: this part is a temp fix-since we don't have +=in csdl, I just made a large velocity matrix contining
         # the induced velocity induced by each bdnwake_coords_names for mls, and sum this matrix by axis to get the
         # total induced vel
+        eval_induced_velocities_col_names = [x + '_eval_pts_induced_vel_col' for x in eval_pts_names]
+
         for i in range(len(eval_pts_names)):
             eval_vel_shape = eval_vel_shapes[i]
 
@@ -180,9 +164,8 @@ class EvalPtsVel(Model):
                 vc=True,
                 eps=self.parameters['eps'],
                 symmetry=self.parameters['symmetry'],
-
             ),
-                     name='eval_pts_aics' + str(i))
+            name='eval_pts_aics' + str(i))
 
             for j in range(len(bdnwake_coords_names)):
                 aic = self.declare_variable(output_names[j],

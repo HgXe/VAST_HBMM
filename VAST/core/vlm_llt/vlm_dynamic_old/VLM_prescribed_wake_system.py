@@ -30,6 +30,7 @@ class ODESystemModel(csdl.Model):
         self.parameters.declare('symmetry',default=False)
         self.parameters.declare('compressible', default=False)
         self.parameters.declare('Ma',default=None)
+        self.parameters.declare('free_wake', default=False)
 
     def define(self):
         # rename parameters
@@ -38,6 +39,11 @@ class ODESystemModel(csdl.Model):
         surface_shapes = self.parameters['surface_shapes']
         delta_t = self.parameters['delta_t']
         nt = self.parameters['nt']
+        free_wake = self.parameters['free_wake']
+        
+        problem_type = 'prescribed_wake'
+        if free_wake:
+            problem_type = 'free_wake'
 
         # set conventional names
         wake_coords_names = [x + '_wake_coords' for x in surface_names]
@@ -57,8 +63,6 @@ class ODESystemModel(csdl.Model):
             nx = bd_vortex_shapes[i][0]
             ny = bd_vortex_shapes[i][1]
             surface_name = surface_names[i]
-            
-
             surface = self.declare_variable(surface_name, shape=(n, nx, ny, 3))
 
 
@@ -184,7 +188,8 @@ class ODESystemModel(csdl.Model):
 
         self.add(ComputeWakeTotalVel(surface_names=surface_names,
                                 surface_shapes=ode_surface_shapes,
-                                n_wake_pts_chord=nt-1),
+                                n_wake_pts_chord=nt-1,
+                                problem_type=problem_type),
                  name='ComputeWakeTotalVel')            
         for i in range(len(surface_names)):
             nx = bd_vortex_shapes[i][0]

@@ -62,24 +62,20 @@ class EvalPtsVel(Model):
         wake_vortex_pts_shapes = [
             tuple((num_nodes, n_wake_pts_chord, item[2], 3))
             for item in surface_shapes]
+        
+        circulation_names = [x + '_bdnwake_gamma_wake' for x in surface_names]
 
         bdnwake_shapes = [
             (num_nodes, x[1] + y[1], x[2], 3)
             for x, y in zip(surface_shapes, wake_vortex_pts_shapes)]
 
-        circulation_names = [x + '_bdnwake_gamma_wake' for x in surface_names]
-
-
-        aic_shapes = [(num_nodes, x[1] * x[2] * (y[1] - 1) * (y[2] - 1), 3)
-                      for x, y in zip(eval_pts_shapes, bdnwake_shapes)]
-
         circulations_shapes = [(num_nodes, (x[1] - 1) * (x[2] - 1) + (y[1]) * (y[2] - 1))
                                 for x, y in zip(surface_shapes, wake_vortex_pts_shapes)]
-        eval_induced_velocities_names = [
-            x + '_wake_induced_vel' for x in surface_names]
-
-        eval_induced_velocities_col_names = [
-            x + '_eval_pts_induced_vel_col_wake' for x in surface_names]
+        
+        eval_induced_velocities_names = [x + '_wake_induced_vel' for x in surface_names]
+        
+        aic_shapes = [(num_nodes, x[1] * x[2] * (y[1] - 1) * (y[2] - 1), 3)
+                      for x, y in zip(eval_pts_shapes, bdnwake_shapes)]
 
         eval_vel_shapes = [(num_nodes, x[1] * x[2], 3) for x in eval_pts_shapes]
 
@@ -107,9 +103,10 @@ class EvalPtsVel(Model):
         # !fixed!: this part is a temp fix-since we don't have +=in csdl, I just made a large velocity matrix contining
         # the induced velocity induced by each bdnwake_coords_names for mls, and sum this matrix by axis to get the
         # total induced vel
+        eval_induced_velocities_col_names = [x + '_eval_pts_induced_vel_col_wake' for x in surface_names]
+
         for i in range(len(eval_pts_names)):
             eval_vel_shape = eval_vel_shapes[i]
-            ny = surface_shapes[i][2]
 
             aic_shapes = [
                 (num_nodes, x[1] * x[2] * (y[1] - 1) * (y[2] - 1), 3)
@@ -118,8 +115,6 @@ class EvalPtsVel(Model):
 
             eval_pts_name_repeat = [eval_pts_names[i]
                                     ] * len(bdnwake_coords_names)
-
-            print('eval_pts_names',eval_pts_names)
 
             output_names = [eval_pts_names[i] + x + '_out' for x in bdnwake_coords_names]
 
@@ -139,7 +134,7 @@ class EvalPtsVel(Model):
                 eps=5e-2,
                 symmetry=self.parameters['symmetry']
             ),
-                     name='eval_pts_aics' + str(i))
+            name='eval_pts_aics' + str(i))
 
             for j in range(len(bdnwake_coords_names)):
                 aic = self.declare_variable(output_names[j],
@@ -170,7 +165,7 @@ class EvalPtsVel(Model):
 
             eval_induced_velocity = sum(induced_vel_list)
             
-            
+            ny = surface_shapes[i][2]
             self.register_output(
                 name=eval_induced_velocities_names[i],
                 var=csdl.reshape(eval_induced_velocity,(num_nodes,n_wake_pts_chord,ny,3)))

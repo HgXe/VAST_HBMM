@@ -231,7 +231,7 @@ class ThrustDrag(Model):
                 s_panels = self.declare_variable(surface_names[i] + '_s_panel',
                                                  shape=(num_nodes, nx - 1,
                                                         ny - 1))
-                s_panels_sum = csdl.reshape(csdl.sum(s_panels, axes=(1, )),
+                s_panels_sum = csdl.reshape(csdl.sum(s_panels, axes=(1, 2)),
                                             (num_nodes, 1))
 
                 # nx = surface_shapes[i][1]

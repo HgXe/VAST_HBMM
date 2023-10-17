@@ -155,7 +155,8 @@ class ThrustDrag(Model):
                 velocities, bd_vec, axis=2)
 
             self.register_output('panel_forces', panel_forces)
-            wing_inital = self.declare_variable(surface_names[0],shape=(num_nodes,nx,ny,3))
+            # wing_inital = self.declare_variable(surface_names[0],shape=(num_nodes,nx,ny,3))
+            # wing_inital = self.declare_variable(surface_names[0],shape=(num_nodes,surface_shapes[0][1],surface_shapes[0][2],3))
             # TODO: delete this hardcoding
 
 
@@ -166,9 +167,9 @@ class ThrustDrag(Model):
 
             # gamma_b_repeat = csdl.expand(gamma_b,(num_nodes, system_size, 3),'ki->kij')  
           
-            c_bar = wing_inital[0,nx-1,0,0] - wing_inital[0,nx-2,0,0]
+            # c_bar = wing_inital[0,surface_shapes[0][1]-1,0,0] - wing_inital[0,surface_shapes[0][1]-2,0,0]
             # self.print_var(c_bar)
-            c_bar_exp = csdl.reshape(csdl.expand(csdl.reshape(c_bar,(1,)), (num_nodes*system_size*3,1),'i->ji'),(num_nodes,system_size,3))
+            # c_bar_exp = csdl.reshape(csdl.expand(csdl.reshape(c_bar,(1,)), (num_nodes*system_size*3,1),'i->ji'),(num_nodes,system_size,3))
             dcirculation_repeat_dt = self.create_output('dcirculation_repeat_dt',shape=(num_nodes,system_size,3))
             # print('dcirculation_repeat_dt shape is:\n',dcirculation_repeat_dt.shape)
             # dcirculation_repeat_dt[0,:,:] = (gamma_b_repeat[1,:,:]-gamma_b_repeat[0,:,:])/delta_t
@@ -349,7 +350,7 @@ class ThrustDrag(Model):
             total_forces_temp_dynamic = csdl.sum(panel_forces_dynamic, axes=(1, ))
             self.register_output('rho_expand',rho_expand)
             # self.register_output('dcirculation_repeat_dt',dcirculation_repeat_dt)
-            self.register_output('c_bar_exp',c_bar_exp)
+            # self.register_output('c_bar_exp',c_bar_exp)
             self.register_output('total_forces_temp_dynamic',total_forces_temp_dynamic)
             self.register_output('crosspd',csdl.cross(
                 velocities, bd_vec, axis=2))

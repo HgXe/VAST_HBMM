@@ -39,6 +39,9 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.parameters.declare('Ma',default=None)
         self.parameters.declare('name', default='uvlm')
         self.parameters.declare('free_wake', default=False)
+        self.parameters.declare('sub',default=False)
+        self.parameters.declare('sub_eval_list',default=None)
+        self.parameters.declare('sub_induced_list',default=None)
     def assign_atributes(self):
         self.num_nodes = self.parameters['num_nodes']
         self.surface_names = self.parameters['surface_names']
@@ -51,6 +54,9 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.name = self.parameters['name']
         self.symmetry = self.parameters['symmetry']
         self.free_wake = self.parameters['free_wake']
+        self.sub = self.parameters['sub']
+        self.sub_eval_list = self.parameters['sub_eval_list']
+        self.sub_induced_list = self.parameters['sub_induced_list']
     def evaluate(self):
         self.assign_atributes()
         num_nodes = self.num_nodes
@@ -123,7 +129,11 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
                                Ma=self.Ma,
                                compressible=self.compressible,
                                frame=self.frame,
-                               free_wake=self.free_wake)
+                               free_wake=self.free_wake,
+                               sub = self.sub,
+                               sub_eval_list = self.sub_eval_list,
+                               sub_induced_list = self.sub_induced_list
+                               )
         return model
 
 

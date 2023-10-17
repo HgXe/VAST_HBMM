@@ -36,6 +36,9 @@ class RHS(Model):
         self.parameters.declare('delta_t')
         self.parameters.declare('problem_type', default='fixed_wake')
         self.parameters.declare('symmetry',default=False)
+        self.parameters.declare('sub',default=False)
+        self.parameters.declare('sub_eval_list',default=None)
+        self.parameters.declare('sub_induced_list',default=None)
 
     def define(self):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
@@ -45,6 +48,10 @@ class RHS(Model):
         num_nodes = bd_vortex_shapes[0][0]
 
         problem_type = self.parameters['problem_type']
+
+        sub = self.parameters['sub']
+        sub_eval_list = self.parameters['sub_eval_list']
+        sub_induced_list = self.parameters['sub_induced_list']
 
         bd_vtx_coords_names = [x + '_bd_vtx_coords' for x in surface_names]
         bd_vtx_normal_names = [x + '_bd_vtx_normals' for x in surface_names]
@@ -107,6 +114,9 @@ class RHS(Model):
                 full_aic_name='aic_M',
                 delta_t=delta_t,  # one line of wake vortex for fix wake,
                 symmetry=self.parameters['symmetry'],
+                sub = sub,
+                sub_eval_list = sub_eval_list,
+                sub_induced_list = sub_induced_list
             )
 
         elif problem_type=='prescribed_wake':
@@ -130,6 +140,9 @@ class RHS(Model):
                 wake_vortex_pts_shapes=TE_wake_vortex_pts_shapes,
                 full_aic_name='aic_M',
                 symmetry=self.parameters['symmetry'],
+                sub = sub,
+                sub_eval_list = sub_eval_list,
+                sub_induced_list = sub_induced_list
                 # delta_t=delta_t,  # one line of wake vortex for fix wake
             )
         self.add(m, name='AssembleAic')
@@ -182,6 +195,9 @@ class RHS(Model):
             full_aic_name='aic_bd',
             vc = False,
             symmetry=self.parameters['symmetry'],
+            sub = sub,
+            sub_eval_list = sub_eval_list,
+            sub_induced_list = sub_induced_list
             # delta_t=delta_t,  # one line of wake vortex for fix wake
         )
         self.add(m, name='AssembleAic_bd')

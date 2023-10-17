@@ -42,6 +42,10 @@ class AssembleAic(Model):
         self.parameters.declare('delta_t',default=None)
         self.parameters.declare('vc',default=False)
         self.parameters.declare('symmetry',default=False)
+        self.parameters.declare('sub',default=False)
+        self.parameters.declare('sub_eval_list',default=None)
+        self.parameters.declare('sub_induced_list',default=None)
+        
 
     def define(self):
         # add_input
@@ -53,6 +57,9 @@ class AssembleAic(Model):
         wake_vortex_pts_shapes = self.parameters['wake_vortex_pts_shapes']
         full_aic_name = self.parameters['full_aic_name']
         vc = self.parameters['vc']
+        sub = self.parameters['sub']
+        sub_eval_list = self.parameters['sub_eval_list']
+        sub_induced_list = self.parameters['sub_induced_list']
 
 
         num_nodes = bd_coll_pts_shapes[0][0]
@@ -82,7 +89,7 @@ class AssembleAic(Model):
                 vortex_coords_names.append(wake_vortex_pts_names[j])
                 eval_pt_shapes.append(bd_coll_pts_shapes[i])
                 vortex_coords_shapes.append(wake_vortex_pts_shapes[j])
-                out_name = full_aic_name + str(i) + '_' + str(j)
+                out_name = full_aic_name  +'_'+ str(i) +'_'+ str(j)
                 output_names.append(out_name)
 
         # print('assemble_aic line 84 eval_pt_names', eval_pt_names)
@@ -93,23 +100,62 @@ class AssembleAic(Model):
 
         # this vc needs to be true because we are computing induced velocity
         # on the quarter chord of the mesh, which is just on the bound vortex lines
-        m = BiotSavartComp(
-            eval_pt_names=eval_pt_names,
-            vortex_coords_names=vortex_coords_names,
-            eval_pt_shapes=eval_pt_shapes,
-            vortex_coords_shapes=vortex_coords_shapes,
-            output_names=output_names,
-            vc=True,
-            symmetry=self.parameters['symmetry'],
-        )
-        self.add(m, name='aic_bd_w_seperate')
+
+        # sub=False
+
+        if sub:
+
+
+            eval_pt_names_sub = []
+            vortex_coords_names_sub = []
+            eval_pt_shapes_sub = []
+            vortex_coords_shapes_sub = []
+            output_names_sub = []
+            # sub_eval_list = [0, 1]
+            # sub_induced_list = [0, 1]
+            # aic_shape_row_sub = aic_shape_col = 0
+
+            for i in range(len(sub_eval_list)):
+                eval_pt_names_sub.append(bd_coll_pts_names[sub_eval_list[i]])
+                eval_pt_shapes_sub.append(bd_coll_pts_shapes[sub_eval_list[i]])
+                vortex_coords_names_sub.append(wake_vortex_pts_names[sub_induced_list[i]])
+                vortex_coords_shapes_sub.append(wake_vortex_pts_shapes[sub_induced_list[i]])
+                output_name_sub = full_aic_name  +'_'+ str(sub_eval_list[i]) +'_'+ str(sub_induced_list[i])
+                output_names_sub.append(output_name_sub)
+
+            m = BiotSavartComp(
+                eval_pt_names=eval_pt_names_sub,
+                vortex_coords_names=vortex_coords_names_sub,
+                eval_pt_shapes=eval_pt_shapes_sub,
+                vortex_coords_shapes=vortex_coords_shapes_sub,
+                output_names=output_names_sub,
+                vc=True,
+                symmetry=self.parameters['symmetry'],
+            )
+            self.add(m, name='aic_bd_w_seperate')
+
+            sub_array = np.array([sub_eval_list,sub_induced_list])
+
+        else:
+
+            m = BiotSavartComp(
+                eval_pt_names=eval_pt_names,
+                vortex_coords_names=vortex_coords_names,
+                eval_pt_shapes=eval_pt_shapes,
+                vortex_coords_shapes=vortex_coords_shapes,
+                output_names=output_names,
+                vc=True,
+                symmetry=self.parameters['symmetry'],
+            )
+            self.add(m, name='aic_bd_w_seperate')
 
         aic_shape = (num_nodes, aic_shape_row, aic_shape_col, 3)
 
         # m1 = Model()
-        aic_col_w = self.create_output(full_aic_name, shape=aic_shape)
+        aic_col_w = self.create_output(full_aic_name, shape=aic_shape, val=0.)
         row = 0
         col = 0
+        
         for i in range(len(bd_coll_pts_shapes)):
             for j in range(len(wake_vortex_pts_shapes)):
                 aic_i_shape = (
@@ -119,18 +165,33 @@ class AssembleAic(Model):
                     (wake_vortex_pts_shapes[j][2] - 1),
                     3,
                 )
-                aic_i = self.declare_variable(
-                    output_names[i * (len(wake_vortex_pts_shapes)) + j],
-                    shape=aic_i_shape)
+                # aic_i = self.declare_variable(
+                #     output_names[i * (len(wake_vortex_pts_shapes)) + j],
+                #     shape=aic_i_shape)
 
                 delta_row = bd_coll_pts_shapes[i][1] * bd_coll_pts_shapes[i][2]
                 delta_col = (wake_vortex_pts_shapes[j][1] -
                              1) * (wake_vortex_pts_shapes[j][2] - 1)
+                
+                if (sub==True) and ((np.array([i,j]).reshape(2,1) == sub_array).all(axis=0).any()):
+                    aic_i = self.declare_variable(
+                        output_names[i * (len(wake_vortex_pts_shapes)) + j],
+                        shape=aic_i_shape,val=0.)
+                    aic_col_w[:, row:row + delta_row,
+                            col:col + delta_col, :] = csdl.reshape(
+                                aic_i,
+                                new_shape=(num_nodes, delta_row, delta_col, 3))
+                
+                elif sub==False:
+                    aic_i = self.declare_variable(
+                        output_names[i * (len(wake_vortex_pts_shapes)) + j],
+                        shape=aic_i_shape,val=0.)
 
-                aic_col_w[:, row:row + delta_row,
-                          col:col + delta_col, :] = csdl.reshape(
-                              aic_i,
-                              new_shape=(num_nodes, delta_row, delta_col, 3))
+                    aic_col_w[:, row:row + delta_row,
+                            col:col + delta_col, :] = csdl.reshape(
+                                aic_i,
+                                new_shape=(num_nodes, delta_row, delta_col, 3))
+
                 col = col + delta_col
             col = 0
             row = row + delta_row
@@ -189,3 +250,183 @@ if __name__ == "__main__":
     # sim.visualize_implementation()
     # print('aic is', sim['aic'])
     # print('v_ind is', sim['v_ind'].shape, sim['v_ind'])
+
+
+#         num_nodes = bd_coll_pts_shapes[0][0]
+#         row_ind = 0
+#         col_ind = 0
+
+#         eval_pt_names = []
+#         vortex_coords_names = []
+#         eval_pt_shapes = []
+#         vortex_coords_shapes = []
+#         output_names = []
+#         aic_shape_row = aic_shape_col = 0
+
+#         for i in range(len(bd_coll_pts_shapes)):
+
+#             bd_coll_pts = self.declare_variable(bd_coll_pts_names[i],
+#                                                 shape=bd_coll_pts_shapes[i])
+#             wake_vortex_pts = self.declare_variable(
+#                 wake_vortex_pts_names[i], shape=wake_vortex_pts_shapes[i])
+#             aic_shape_row += (bd_coll_pts_shapes[i][1] *
+#                               bd_coll_pts_shapes[i][2])
+#             aic_shape_col += ((wake_vortex_pts_shapes[i][1] - 1) *
+#                               (wake_vortex_pts_shapes[i][2] - 1))
+
+#             for j in range(len(wake_vortex_pts_shapes)):
+#                 eval_pt_names.append(bd_coll_pts_names[i])
+#                 vortex_coords_names.append(wake_vortex_pts_names[j])
+#                 eval_pt_shapes.append(bd_coll_pts_shapes[i])
+#                 vortex_coords_shapes.append(wake_vortex_pts_shapes[j])
+#                 out_name = full_aic_name  +'_'+ str(i) +'_'+ str(j)
+#                 output_names.append(out_name)
+
+#         # print('assemble_aic line 84 eval_pt_names', eval_pt_names)
+#         # print('assemble_aic line 85 vortex_coords_names', vortex_coords_names)
+#         # print('assemble_aic line 86 eval_pt_shapes', eval_pt_shapes)
+#         # print('assemble_aic l 87 vortex_coords_shapes', vortex_coords_shapes)
+#         # print('assemble_aic l 87 output_names', output_names)
+
+#         # this vc needs to be true because we are computing induced velocity
+#         # on the quarter chord of the mesh, which is just on the bound vortex lines
+
+#         # sub=True
+
+#         if sub:
+
+
+#             eval_pt_names_sub = []
+#             vortex_coords_names_sub = []
+#             eval_pt_shapes_sub = []
+#             vortex_coords_shapes_sub = []
+#             output_names_sub = []
+#             # sub_eval_list = [0,1]
+#             # sub_induced_list = [0, 1]
+#             # aic_shape_row_sub = aic_shape_col = 0
+
+#             for i in range(len(sub_eval_list)):
+#                 eval_pt_names_sub.append(bd_coll_pts_names[sub_eval_list[i]])
+#                 eval_pt_shapes_sub.append(bd_coll_pts_shapes[sub_eval_list[i]])
+#                 vortex_coords_names_sub.append(wake_vortex_pts_names[sub_induced_list[i]])
+#                 vortex_coords_shapes_sub.append(wake_vortex_pts_shapes[sub_induced_list[i]])
+#                 output_name_sub = full_aic_name  +'_'+ str(sub_eval_list[i]) +'_'+ str(sub_induced_list[i])
+#                 output_names_sub.append(output_name_sub)
+
+#             m = BiotSavartComp(
+#                 eval_pt_names=eval_pt_names_sub,
+#                 vortex_coords_names=vortex_coords_names_sub,
+#                 eval_pt_shapes=eval_pt_shapes_sub,
+#                 vortex_coords_shapes=vortex_coords_shapes_sub,
+#                 output_names=output_names_sub,
+#                 vc=True,
+#                 symmetry=self.parameters['symmetry'],
+#             )
+#             self.add(m, name='aic_bd_w_seperate')
+
+        
+
+
+#         else:
+
+#             m = BiotSavartComp(
+#                 eval_pt_names=eval_pt_names,
+#                 vortex_coords_names=vortex_coords_names,
+#                 eval_pt_shapes=eval_pt_shapes,
+#                 vortex_coords_shapes=vortex_coords_shapes,
+#                 output_names=output_names,
+#                 vc=True,
+#                 symmetry=self.parameters['symmetry'],
+#             )
+#             self.add(m, name='aic_bd_w_seperate')
+
+#         aic_shape = (num_nodes, aic_shape_row, aic_shape_col, 3)
+
+#         # m1 = Model()
+#         aic_col_w = self.create_output(full_aic_name, shape=aic_shape)
+#         row = 0
+#         col = 0
+#         for i in range(len(bd_coll_pts_shapes)):
+#             for j in range(len(wake_vortex_pts_shapes)):
+#                 aic_i_shape = (
+#                     num_nodes,
+#                     bd_coll_pts_shapes[i][1] * bd_coll_pts_shapes[i][2] *
+#                     (wake_vortex_pts_shapes[j][1] - 1) *
+#                     (wake_vortex_pts_shapes[j][2] - 1),
+#                     3,
+#                 )
+#                 # aic_i = self.declare_variable(
+#                 #     output_names[i * (len(wake_vortex_pts_shapes)) + j],
+#                 #     shape=aic_i_shape)
+
+#                 delta_row = bd_coll_pts_shapes[i][1] * bd_coll_pts_shapes[i][2]
+#                 delta_col = (wake_vortex_pts_shapes[j][1] -
+#                              1) * (wake_vortex_pts_shapes[j][2] - 1)
+                
+
+#                 aic_i = self.declare_variable(
+#                     output_names[i * (len(wake_vortex_pts_shapes)) + j],
+#                     shape=aic_i_shape,val=0.)
+
+#                 aic_col_w[:, row:row + delta_row,
+#                           col:col + delta_col, :] = csdl.reshape(
+#                               aic_i,
+#                               new_shape=(num_nodes, delta_row, delta_col, 3))
+#                 col = col + delta_col
+#             col = 0
+#             row = row + delta_row
+
+
+# if __name__ == "__main__":
+
+#     def generate_simple_mesh(nx, ny, n_wake_pts_chord=None):
+#         if n_wake_pts_chord == None:
+#             mesh = np.zeros((nx, ny, 3))
+#             mesh[:, :, 0] = np.outer(np.arange(nx), np.ones(ny))
+#             mesh[:, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
+#             mesh[:, :, 2] = 0.
+#         else:
+#             mesh = np.zeros((n_wake_pts_chord, nx, ny, 3))
+#             for i in range(n_wake_pts_chord):
+#                 mesh[i, :, :, 0] = np.outer(np.arange(nx), np.ones(ny))
+#                 mesh[i, :, :, 1] = np.outer(np.arange(ny), np.ones(nx)).T
+#                 mesh[i, :, :, 2] = 0.
+#         return mesh
+
+#     bd_coll_pts_names = ['bd_coll_pts_1', 'bd_coll_pts_2']
+#     wake_vortex_pts_names = ['wake_vortex_pts_1', 'wake_vortex_pts_2']
+#     bd_coll_pts_shapes = [(2, 3, 3), (3, 2, 3)]
+#     wake_vortex_pts_shapes = [(3, 3, 3), (3, 2, 3)]
+#     # bd_coll_pts_shapes = [(2, 3, 3), (2, 3, 3)]
+#     # wake_vortex_pts_shapes = [(3, 3, 3), (3, 3, 3)]
+
+#     model_1 = Model()
+#     bd_val = np.random.random((2, 3, 3))
+#     bd_val_1 = np.random.random((3, 2, 3))
+#     wake_vortex_val = np.random.random((3, 3, 3))
+#     wake_vortex_val_1 = np.random.random((3, 2, 3))
+
+#     # bd_val = np.random.random((2, 3, 3))
+#     # bd_val_1 = np.random.random((2, 3, 3))
+#     # wake_vortex_val = np.random.random((3, 3, 3))
+#     # wake_vortex_val_1 = np.random.random((3, 3, 3))
+
+#     bd = model_1.create_input('bd_coll_pts_1', val=bd_val)
+#     bd_1 = model_1.create_input('bd_coll_pts_2', val=bd_val_1)
+
+#     wake_vortex = model_1.create_input('wake_vortex_pts_1',
+#                                        val=wake_vortex_val)
+#     wake_vortex_1 = model_1.create_input('wake_vortex_pts_2',
+#                                          val=wake_vortex_val_1)
+#     model_1.add(AssembleAic(
+#         bd_coll_pts_names=bd_coll_pts_names,
+#         wake_vortex_pts_names=wake_vortex_pts_names,
+#         bd_coll_pts_shapes=bd_coll_pts_shapes,
+#         wake_vortex_pts_shapes=wake_vortex_pts_shapes,
+#     ),
+#                 name='assemble_aic_comp')
+#     sim = Simulator(model_1)
+#     sim.run()
+#     # sim.visualize_implementation()
+#     # print('aic is', sim['aic'])
+#     # print('v_ind is', sim['v_ind'].shape, sim['v_ind'])

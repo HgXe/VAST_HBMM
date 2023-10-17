@@ -31,6 +31,9 @@ class ODESystemModel(csdl.Model):
         self.parameters.declare('compressible', default=False)
         self.parameters.declare('Ma',default=None)
         self.parameters.declare('free_wake', default=False)
+        self.parameters.declare('sub',default=False)
+        self.parameters.declare('sub_eval_list',default=None)
+        self.parameters.declare('sub_induced_list',default=None)
 
     def define(self):
         # rename parameters
@@ -40,6 +43,9 @@ class ODESystemModel(csdl.Model):
         delta_t = self.parameters['delta_t']
         nt = self.parameters['nt']
         free_wake = self.parameters['free_wake']
+        sub = self.parameters['sub']
+        sub_eval_list = self.parameters['sub_eval_list']
+        sub_induced_list = self.parameters['sub_induced_list']
         
         problem_type = 'prescribed_wake'
         if free_wake:
@@ -114,7 +120,10 @@ class ODESystemModel(csdl.Model):
                                 bd_vortex_shapes=ode_surface_shapes,
                                 delta_t=delta_t,
                                 problem_type='prescribed_wake',
-                                symmetry=self.parameters['symmetry'],),
+                                symmetry=self.parameters['symmetry'],
+                                sub = sub,
+                                sub_eval_list = sub_eval_list,
+                                sub_induced_list = sub_induced_list),
                     name='solve_gamma_b_group')
 
         self.add(SeperateGammab(surface_names=surface_names,

@@ -38,6 +38,7 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.parameters.declare('compressible', default=False)
         self.parameters.declare('Ma',default=None)
         self.parameters.declare('name', default='uvlm')
+        self.parameters.declare('free_wake', default=False)
     def assign_atributes(self):
         self.num_nodes = self.parameters['num_nodes']
         self.surface_names = self.parameters['surface_names']
@@ -49,6 +50,7 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.Ma = self.parameters['Ma']
         self.name = self.parameters['name']
         self.symmetry = self.parameters['symmetry']
+        self.free_wake = self.parameters['free_wake']
     def evaluate(self):
         self.assign_atributes()
         num_nodes = self.num_nodes
@@ -120,7 +122,8 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
                                symmetry=self.symmetry,
                                Ma=self.Ma,
                                compressible=self.compressible,
-                               frame=self.frame)
+                               frame=self.frame,
+                               free_wake=self.free_wake)
         return model
 
 

@@ -147,6 +147,9 @@ class PostProcessor(csdl.Model):
         self.parameters.declare('symmetry',default=False)
         self.parameters.declare('Ma',default=0.84)
         self.parameters.declare('frame', default='wing_fixed')
+        self.parameters.declare('sub',default=False)
+        self.parameters.declare('sub_eval_list',default=None)
+        self.parameters.declare('sub_induced_list',default=None)
 
     def define(self):
         num_nodes = self.parameters['num_nodes']
@@ -158,6 +161,9 @@ class PostProcessor(csdl.Model):
         symmetry = self.parameters['symmetry']
         frame = self.parameters['frame']
 
+        sub = self.parameters['sub']
+        sub_eval_list = self.parameters['sub_eval_list']
+        sub_induced_list = self.parameters['sub_induced_list']
 
         ode_surface_shapes = [(nt-1, ) + item for item in surface_shapes]
         eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
@@ -192,7 +198,10 @@ class PostProcessor(csdl.Model):
                                 delta_t=h_stepsize,
                                 problem_type='prescribed_wake',
                                 end=True,
-                                symmetry=self.parameters['symmetry'],),
+                                symmetry=self.parameters['symmetry'],
+                                sub = sub,
+                                sub_eval_list = sub_eval_list,
+                                sub_induced_list = sub_induced_list),
                     name='solve_gamma_b_group')
         self.add(SeperateGammab(surface_names=surface_names,
                                 surface_shapes=ode_surface_shapes),

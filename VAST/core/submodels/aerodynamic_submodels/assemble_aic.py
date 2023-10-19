@@ -53,8 +53,8 @@ class AssembleAic(Model):
         eval_pt_shapes_new = []
         vortex_coords_shapes_new = []
         output_names_new = []
-        sym_type = []
-        reflection_axes = []
+        sym_type = [] # holds the surface that is being reflected; if it is a wing across y, the entry will say 'self'
+        reflection_axes = [] # axes to perform reflection, ordered how the reflection in sym_type would occur
 
         for i, sym_set in enumerate(sym_struct_list):
             len_sym_set = len(sym_set)
@@ -89,14 +89,42 @@ class AssembleAic(Model):
                     print('image in 1')
                 elif 'image' in bd_coll_pts_names[sym_set[1]]:
                     print('image in 2')
+                    add_surf = [bd_coll_pts_names[sym_set[1]]]
+                    sym_type.extend([add_surf]*len(coll_surf_indices))
+                    reflection_axes.extend(['yz']*len(coll_surf_indices))
 
                 else:
+                    print('No image; mirroring is not through ground plane.')
+                    add_surf = [bd_coll_pts_names[sym_set[1]]]
+                    sym_type.extend([add_surf]*len(coll_surf_indices))
+                    reflection_axes.extend(['y']*len(coll_surf_indices))
                     pass # case with no mirroring
                 # need to check if image is in the name
                 # if not, then it's just a y reflection
                 # if image, then it is a yz reflection
             elif len_sym_set == 4:
-                pass
+                sym_type_surf = []
+                ref_axes_surf = []
+                ref_surf = sym_set[1:]
+                image_in_surf = ['image' in bd_coll_pts_names[i] for i in ref_surf]
+                for j, bool_val in enumerate(image_in_surf):
+                    if bool_val == False:
+                        sym_type_surf.append(bd_coll_pts_names[ref_surf[j]])
+                        ref_axes_surf.append('y')
+                    elif bool_val == True:
+                        sym_type_surf.append(bd_coll_pts_names[ref_surf[j]])
+                        dummy_string = bd_coll_pts_names[ref_surf[j]].replace('image_','')
+                        if dummy_string == bd_coll_pts_names[sym_set[0]]:
+                            ref_axes_surf.append('z')
+                        else:
+                            ref_axes_surf.append('yz')
+                sym_type.extend([sym_type_surf]*len(coll_surf_indices))
+                reflection_axes.extend([ref_axes_surf]*len(coll_surf_indices))
+
+
+
+
+
             elif len_sym_set > 1: # multiple surfaces 
                 surface_sym = 0
                 # NEED TO KEEP TRACK OF SURFACE NAMES HERE
@@ -104,6 +132,7 @@ class AssembleAic(Model):
                 for add_ind in sym_set[1:]:
                     add_surf.append(bd_coll_pts_names[add_ind])
                 sym_type.extend([add_surf]*len(coll_surf_indices))
+                
                 if len_sym_set == 2:
                     pass
                 elif len_sym_set == 4:
@@ -115,8 +144,13 @@ class AssembleAic(Model):
                 #   - remaining has y reflection
                 # parse name such that if "image" is removed, then 
 
-        
-        exit()
+        print('====')
+        print(eval_pts_names_new)
+        print(vortex_coords_names_new)
+        print(output_names_new)
+        print(sym_type)
+        print(reflection_axes)
+        # exit()
 
         return eval_pts_names_new, vortex_coords_names_new, eval_pt_shapes_new, vortex_coords_shapes_new, output_names_new, sym_type, reflection_axes
 
@@ -233,7 +267,7 @@ class AssembleAic(Model):
             print(sym_type)
             print(reflection_axes)
             print("====")
-            exit()
+            # exit()
             m = BiotSavartComp(
                 eval_pt_names=eval_pt_names_sub,
                 vortex_coords_names=vortex_coords_names_sub,

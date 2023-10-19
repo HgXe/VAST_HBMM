@@ -45,7 +45,80 @@ class AssembleAic(Model):
         self.parameters.declare('sub',default=False)
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
+        self.parameters.declare('sym_struct_list', default=None)
+    
+    def _adjust_inputs_for_symmetry(self, sym_struct_list, bd_coll_pts_names, wake_vortex_pts_names, eval_pt_names, vortex_coords_names, eval_pt_shapes, vortex_coords_shapes, output_names):
+        eval_pts_names_new = []
+        vortex_coords_names_new = []
+        eval_pt_shapes_new = []
+        vortex_coords_shapes_new = []
+        output_names_new = []
+        sym_type = []
+        reflection_axes = []
+
+        for i, sym_set in enumerate(sym_struct_list):
+            len_sym_set = len(sym_set)
+            init_surface = sym_set[0] # first surface in the symmetry combinations
+            init_coll_surface = bd_coll_pts_names[init_surface]
+            init_wake_vortex = wake_vortex_pts_names[init_surface]
+
+            coll_surf_indices = [i for i in range(len(eval_pt_names)) if eval_pt_names[i] == init_coll_surface]
+            print(init_coll_surface)
+            # print(eval_pt_names)
+            print(coll_surf_indices)
+            # print([eval_pt_names[i] for i in coll_surf_indices])
+
+            # adjusting the input names for the biot savart law computation 
+            eval_pts_names_new.extend([eval_pt_names[i] for i in coll_surf_indices])
+            vortex_coords_names_new.extend([vortex_coords_names[i] for i in coll_surf_indices])
+            eval_pt_shapes_new.extend([eval_pt_shapes[i] for i in coll_surf_indices])
+            vortex_coords_shapes_new.extend([vortex_coords_shapes[i] for i in coll_surf_indices])
+            output_names_new.extend([output_names[i] for i in coll_surf_indices])
+
+            print('====')
+            for surf in sym_set:                
+                print(bd_coll_pts_names[surf])
+            print('====')
+
+            if len_sym_set == 1: # single surface symmetric across y
+                surface_sym = 'self'
+                sym_type.extend([surface_sym] * len(coll_surf_indices))
+                reflection_axes.extend(['y'] * len(coll_surf_indices))
+            elif len_sym_set == 2:
+                if 'image' in bd_coll_pts_names[sym_set[0]]:
+                    print('image in 1')
+                elif 'image' in bd_coll_pts_names[sym_set[1]]:
+                    print('image in 2')
+
+                else:
+                    pass # case with no mirroring
+                # need to check if image is in the name
+                # if not, then it's just a y reflection
+                # if image, then it is a yz reflection
+            elif len_sym_set == 4:
+                pass
+            elif len_sym_set > 1: # multiple surfaces 
+                surface_sym = 0
+                # NEED TO KEEP TRACK OF SURFACE NAMES HERE
+                add_surf = []
+                for add_ind in sym_set[1:]:
+                    add_surf.append(bd_coll_pts_names[add_ind])
+                sym_type.extend([add_surf]*len(coll_surf_indices))
+                if len_sym_set == 2:
+                    pass
+                elif len_sym_set == 4:
+                    pass
+
+                # need reflection axes here:
+                # how to do it:
+                #   - any name with "image" automatically has z
+                #   - remaining has y reflection
+                # parse name such that if "image" is removed, then 
+
         
+        exit()
+
+        return eval_pts_names_new, vortex_coords_names_new, eval_pt_shapes_new, vortex_coords_shapes_new, output_names_new, sym_type, reflection_axes
 
     def define(self):
         # add_input
@@ -60,6 +133,7 @@ class AssembleAic(Model):
         sub = self.parameters['sub']
         sub_eval_list = self.parameters['sub_eval_list']
         sub_induced_list = self.parameters['sub_induced_list']
+        sym_struct_list = self.parameters['sym_struct_list']
 
 
         num_nodes = bd_coll_pts_shapes[0][0]
@@ -102,9 +176,14 @@ class AssembleAic(Model):
         # on the quarter chord of the mesh, which is just on the bound vortex lines
 
         # sub=False
+        # if self.parameters['symmetry'] and sym_struct_list is not None:
+
 
         if sub:
-
+            print('====')
+            print(bd_coll_pts_names)
+            print(wake_vortex_pts_names)
+            print('====')
 
             eval_pt_names_sub = []
             vortex_coords_names_sub = []
@@ -122,7 +201,39 @@ class AssembleAic(Model):
                 vortex_coords_shapes_sub.append(wake_vortex_pts_shapes[sub_induced_list[i]])
                 output_name_sub = full_aic_name  +'_'+ str(sub_eval_list[i]) +'_'+ str(sub_induced_list[i])
                 output_names_sub.append(output_name_sub)
+            
+            print(eval_pt_names_sub)
+            print(vortex_coords_names_sub)
+            print(output_names_sub)
 
+            if self.parameters['symmetry'] and sym_struct_list is not None:
+                new_sub = self._adjust_inputs_for_symmetry(
+                    sym_struct_list,
+                    bd_coll_pts_names,
+                    wake_vortex_pts_names,
+                    eval_pt_names_sub,
+                    vortex_coords_names_sub,
+                    eval_pt_shapes_sub,
+                    vortex_coords_shapes_sub,
+                    output_names_sub 
+                )
+
+                eval_pt_names_sub = new_sub[0]
+                vortex_coords_names_sub = new_sub[1]
+                eval_pt_shapes_sub = new_sub[2]
+                vortex_coords_shapes_sub = new_sub[3]
+                output_names_sub = new_sub[4]
+                sym_type = new_sub[5]
+                reflection_axes = new_sub[6]
+
+            print('====')
+            print(eval_pt_names_sub)
+            print(vortex_coords_names_sub)
+            print(output_names_sub)
+            print(sym_type)
+            print(reflection_axes)
+            print("====")
+            exit()
             m = BiotSavartComp(
                 eval_pt_names=eval_pt_names_sub,
                 vortex_coords_names=vortex_coords_names_sub,
@@ -131,6 +242,7 @@ class AssembleAic(Model):
                 output_names=output_names_sub,
                 vc=True,
                 symmetry=self.parameters['symmetry'],
+                sym_type=sym_type
             )
             self.add(m, name='aic_bd_w_seperate')
 

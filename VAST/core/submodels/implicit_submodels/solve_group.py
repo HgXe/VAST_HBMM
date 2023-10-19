@@ -44,6 +44,7 @@ class SolveMatrix(Model):
         self.parameters.declare('sub',default=False)
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
+        self.parameters.declare('sym_struct_list', default=None)
 
         # pass
 
@@ -59,6 +60,7 @@ class SolveMatrix(Model):
         sub = self.parameters['sub']
         sub_eval_list = self.parameters['sub_eval_list']
         sub_induced_list = self.parameters['sub_induced_list']
+        sym_struct_list = self.parameters['sym_struct_list']
 
         bd_coll_pts_shapes = [
             tuple(map(lambda i, j: i - j, item, (0, 1, 1, 0)))
@@ -92,7 +94,8 @@ class SolveMatrix(Model):
                     symmetry=self.parameters['symmetry'],
                     sub = sub,
                     sub_eval_list = sub_eval_list,
-                    sub_induced_list = sub_induced_list
+                    sub_induced_list = sub_induced_list,
+                    sym_struct_list=sym_struct_list
                 ), 'RHS_group')
         elif self.parameters['end']==True:
             model.add(
@@ -105,7 +108,8 @@ class SolveMatrix(Model):
                     symmetry=self.parameters['symmetry'],
                     sub = sub,
                     sub_eval_list = sub_eval_list,
-                    sub_induced_list = sub_induced_list
+                    sub_induced_list = sub_induced_list,
+                    sym_struct_list=sym_struct_list
                 ), 'RHS_group')
 
         self.add(model, 'prepossing_before_Solve')

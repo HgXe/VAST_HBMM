@@ -56,7 +56,9 @@ class BiotSavartComp(csdl.Model):
         symmetry = self.parameters['symmetry']
         sym_type = self.parameters['sym_type']
         # print('symmetry is---------------------------------------------', symmetry)
-
+        print(eval_pt_names)
+        print(vortex_coords_names)
+        exit()
         for i in range(len(eval_pt_names)):
             # input_names
             eval_pt_name = eval_pt_names[i]

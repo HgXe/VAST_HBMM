@@ -227,6 +227,37 @@ class ProfileOPModel3(csdl.Model):
             surface_dwake_coords_dt[:, 0, :, :] = (TE  + wake_total_vel[:, 0, :, :]*delta_t - surface_wake_coords[:, 0, :, :]) / delta_t
             surface_dwake_coords_dt[:, 1:, :, :] = (surface_wake_coords[:, :(surface_wake_coords.shape[1] - 1), :, :] - surface_wake_coords[:, 1:, :, :] + wake_total_vel[:, 1:, :, :] * delta_t) / delta_t
 
+        # submodel = PPSubmodel(
+        #     surface_names=surface_names,
+        #     ode_surface_shapes=ode_surface_shapes,
+        #     delta_t=delta_t,
+        #     nt=nt,
+        #     symmetry=self.parameters['symmetry']
+        # )
+
+        # kv_names= [x + '_kinematic_vel' for x in surface_names]
+        # gb_names= [x + '_gamma_b' for x in surface_names]
+        # op_gw_names = ['op_' + x + '_gamma_w' for x in surface_names]
+        # bvc_names = [x + '_bd_vtx_coords' for x in surface_names]
+        # op_wc_names = ['op_' + x + '_wake_coords' for x in surface_names]
+        # sp_names = [x + '_s_panel' for x in surface_names]
+        # eval_pts = [x + '_eval_pts_coords' for x in surface_names]
+        # output1 = [x + '_L' for x in surface_names]
+
+        # promotions = ['gamma_b','evaluation_pt','frame_vel','density','bd_vec','beta','alpha']
+        # promotions += surface_names
+        # promotions += kv_names
+        # promotions += gb_names
+        # promotions += op_gw_names 
+        # promotions += bvc_names 
+        # promotions += op_wc_names 
+        # promotions += sp_names 
+        # promotions += output1
+        # promotions += eval_pts
+
+        # self.add(submodel, name='pp_computations', promotes=promotions)
+
+
         eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
         eval_pts_shapes =        [
             tuple(map(lambda i, j: i - j, item, (0, 1, 1, 0)))
@@ -267,4 +298,77 @@ class ProfileOPModel3(csdl.Model):
             delta_t=delta_t,
         )
         self.add(submodel, name='ThrustDrag')
+
+
+
+# input variables:
+### gamma b
+
+
+class PPSubmodel(csdl.Model):
+    def initialize(self):
+        self.parameters.declare('surface_names')
+        self.parameters.declare('ode_surface_shapes')
+        self.parameters.declare('delta_t')
+        self.parameters.declare('nt')
+        self.parameters.declare('symmetry')
+    def define(self):
+        surface_names = self.parameters['surface_names']
+        ode_surface_shapes = self.parameters['ode_surface_shapes']
+        delta_t = self.parameters['delta_t']
+        nt = self.parameters['nt']
+
+        eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+        eval_pts_shapes =        [
+            tuple(map(lambda i, j: i - j, item, (0, 1, 1, 0)))
+            for item in ode_surface_shapes
+        ]
+
+        # compute lift and drag
+        submodel = HorseshoeCirculations(
+            surface_names=surface_names,
+            surface_shapes=ode_surface_shapes,
+        )
+        self.add(submodel, name='compute_horseshoe_circulation')
+
+        submodel = EvalPtsVel(
+            eval_pts_names=eval_pts_names,
+            eval_pts_shapes=eval_pts_shapes,
+            eval_pts_option='auto',
+            eval_pts_location=0.25,
+            surface_names=surface_names,
+            surface_shapes=ode_surface_shapes,
+            n_wake_pts_chord=nt-2,
+            delta_t=delta_t,
+            problem_type='prescribed_wake',
+            eps=4e-5,
+            symmetry=self.parameters['symmetry'],
+        )
+        self.add(submodel, name='EvalPtsVel')
+
+        submodel = ThrustDragUndynamic(
+            surface_names=surface_names,
+            surface_shapes=ode_surface_shapes,
+            eval_pts_option='auto',
+            eval_pts_shapes=eval_pts_shapes,
+            eval_pts_names=eval_pts_names,
+            sprs=None,
+            coeffs_aoa=None,
+            coeffs_cd=None,
+            delta_t=delta_t,
+        )
+        self.add(submodel, name='ThrustDrag')
+
+
+if __name__ == '__main__':
+    from python_csdl_backend import Simulator
+    surface_names = ['wing','wing2']
+    ode_surface_shapes = [(5,5,5,3),(5,5,5,3)]
+    eval_pts_shapes = ode_surface_shapes
+    eval_pts_names = ['wing1']
+    delta_t = 0.01
+    nt = 10
+    model = PPSubmodel(surface_names=surface_names, ode_surface_shapes=ode_surface_shapes,delta_t=delta_t,nt=nt,symmetry=False)
+    sim = Simulator(model, analytics=True)
+    
 

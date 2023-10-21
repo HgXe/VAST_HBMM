@@ -88,7 +88,7 @@ class EvalPtsVel(Model):
             ]
             v_total_eval_names = [x + '_eval_total_vel' for x in eval_pts_names]
 
-        elif self.parameters['problem_type'] == 'prescribed_wake':
+        elif self.parameters['problem_type'] == 'prescribed_wake' or 'free_wake':
             bdnwake_shapes = [
                 (num_nodes, x[1] + y[1], x[2], 3)
                 for x, y in zip(surface_shapes, wake_vortex_pts_shapes)

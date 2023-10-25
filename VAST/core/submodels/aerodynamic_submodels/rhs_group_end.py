@@ -129,7 +129,7 @@ class RHSEND(Model):
             for i in range(len(surface_names)):
                 bd_vortex_coords = self.declare_variable(bd_vtx_coords_names[i],shape=bd_vortex_shapes[i])
                 wake_coords = self.declare_variable(wake_coords_names[i],shape=wake_vortex_pts_shapes[i])
-                print(wake_coords_names)
+                # print(wake_coords_names)
                 # self.print_var(wake_coords)
                 TE_wake_coords=self.create_output(TE_wake_coords_names[i],shape=TE_wake_vortex_pts_shapes[i])
                 TE_wake_coords[:,0,:,:] = bd_vortex_coords[:,bd_vortex_shapes[i][1]-1,:,:]

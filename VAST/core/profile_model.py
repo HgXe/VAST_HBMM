@@ -510,10 +510,10 @@ def gen_profile_output_list(surface_names, surface_shapes):
     gamma_b_len = 0
     for surface_name, surface_shape in zip(surface_names, surface_shapes):
         kv_name = surface_name + '_kinematic_vel'
-        kv_shape = (surface_shape[1]-1,3)
+        kv_shape = ((surface_shape[1]-1)*(surface_shape[0]-1),3)
         outputs.append((kv_name, kv_shape))
         gb_name = surface_name + '_gamma_b'
-        gb_shape = (1,surface_shape[1]-1)
+        gb_shape = (1,(surface_shape[1]-1)*(surface_shape[0]-1))
         outputs.append((gb_name, gb_shape))
         bvc_name = surface_name + '_bd_vtx_coords'
         bvc_shape = (1,) + surface_shape
@@ -524,7 +524,7 @@ def gen_profile_output_list(surface_names, surface_shapes):
         eval_pts_name = surface_name + '_eval_pts_coords'
         eval_pts_shape = (1,surface_shape[0]-1, surface_shape[1]-1, 3)
         outputs.append((eval_pts_name, eval_pts_shape))
-        gamma_b_len += surface_shape[1] - 1
+        gamma_b_len += (surface_shape[1]-1)*(surface_shape[0]-1)
     outputs.append(('gamma_b', (1,gamma_b_len)))
     # outputs.append(('evaluation_pt', (3,)))
     outputs.append(('frame_vel', (1,3)))

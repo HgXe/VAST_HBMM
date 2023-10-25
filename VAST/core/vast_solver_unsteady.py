@@ -20,6 +20,7 @@ from VAST.core.submodels.implicit_submodels.solve_group import SolveMatrix
 from VAST.core.submodels.aerodynamic_submodels.seperate_gamma_b import SeperateGammab
 from VAST.core.submodels.wake_submodels.compute_wake_total_vel import ComputeWakeTotalVel
 from VAST.core.submodels.output_submodels.vlm_post_processing.compute_effective_aoa_cd_v import AOA_CD
+from VAST.core.profile_model import ProfileOPModel4
 
 
 
@@ -122,7 +123,7 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         residual = m3l.Variable(self.residual_names[0][1], shape=(), operation=self)
         return residual #, frame_vel, bd_vec, horseshoe_circulation
     def compute_residual(self, num_nodes):
-        model = ODESystemModel(num_nodes=num_nodes,
+        model = ProfileOPModel4(num_nodes=num_nodes,
                                surface_names=self.surface_names,
                                surface_shapes=self.surface_shapes,
                                delta_t=self.delta_t,

@@ -116,7 +116,7 @@ class BiotSavartComp(csdl.Model):
                     AIC_half = v_ab + v_bc + v_cd + v_da      
                     # self.register_output('aic_half', AIC_half)             
                     # model_2 = csdl.Model()
-                    AIC = csdl.custom(AIC_half, op = ComputeFullAIC(in_name=AIC_half.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name))
+                    AIC = csdl.custom(AIC_half, op = SymmetryFlip(in_name=AIC_half.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name))
                     print(AIC_half.shape)
                     print(AIC.shape)
                     # exit()
@@ -188,7 +188,12 @@ class BiotSavartComp(csdl.Model):
                                     3))
 
         r1 = eval_pts_expand - p_1_expand
-        r1_norm = csdl.sum(r1**2, axes=(2,))**0.5
+        self.register_output(r1.name + '_test_output', r1)
+        # r1_norm = csdl.pnorm(r1, axis=(2,))
+        # r1_norm = csdl.sum(r1**2, axes=(2,))**0.5
+        r1_norm = csdl.sum(r1**2+1e-2, axes=(2,))**0.5 # TODO: make pnorm work
+        # r1_sum = csdl.sum(r1**2, axes=(2,))
+        # r1_norm = csdl.custom(r1_sum, op=PosSqrt(in_name=r1_sum.name, out_name=r1_sum.name + '_norm', shape=r1_sum.shape))
         return r1, r1_norm
 
 
@@ -259,7 +264,61 @@ class BiotSavartComp(csdl.Model):
         return v_induced_line
 
 
-class ComputeFullAIC(csdl.CustomExplicitOperation):
+class PosSqrt(csdl.CustomExplicitOperation):
+    def initialize(self):
+        self.parameters.declare('in_name')
+        self.parameters.declare('out_name')
+        self.parameters.declare('shape')
+    def define(self):
+        in_name = self.parameters['in_name']
+        out_name = self.parameters['out_name']
+        shape = self.parameters['shape']
+        self.add_input(in_name, shape=shape)
+        self.add_output(out_name, shape=shape)
+        self.declare_derivatives(out_name, in_name)
+    def compute(self, inputs, outputs):
+        in_name = self.parameters['in_name']
+        out_name = self.parameters['out_name']
+        outputs[out_name] = inputs[in_name]**0.5
+    def compute_derivatives(self, inputs, derivatives):
+        in_name = self.parameters['in_name']
+        out_name = self.parameters['out_name']
+        input = inputs[in_name]
+        input[input < 1e-3] = 1e-3
+        derivative = np.zeros((input.shape[0], input.shape[1], input.shape[0], input.shape[1]))
+        for i in range(input.shape[0]):
+            derivative[i,:,i,:] = np.diag(1/2 * input[i,:] ** (-1/2))
+        derivatives[out_name, in_name] = derivative
+
+
+class PosSqrt(csdl.CustomExplicitOperation):
+    def initialize(self):
+        self.parameters.declare('in_name')
+        self.parameters.declare('out_name')
+        self.parameters.declare('shape')
+    def define(self):
+        in_name = self.parameters['in_name']
+        out_name = self.parameters['out_name']
+        shape = self.parameters['shape']
+        self.add_input(in_name, shape=shape)
+        self.add_output(out_name, shape=shape)
+        self.declare_derivatives(out_name, in_name)
+    def compute(self, inputs, outputs):
+        in_name = self.parameters['in_name']
+        out_name = self.parameters['out_name']
+        outputs[out_name] = inputs[in_name]**0.5
+    def compute_derivatives(self, inputs, derivatives):
+        in_name = self.parameters['in_name']
+        out_name = self.parameters['out_name']
+        input = inputs[in_name]
+        input[input < 1e-3] = 1e-3
+        derivative = np.zeros((input.shape[0], input.shape[1], input.shape[0], input.shape[1]))
+        for i in range(input.shape[0]):
+            derivative[i,:,i,:] = np.diag(1/2 * input[i,:] ** (-1/2))
+        derivatives[out_name, in_name] = derivative
+
+
+class SymmetryFlip(csdl.CustomExplicitOperation):
     """
     Compute the whole AIC matrix given half of it
 

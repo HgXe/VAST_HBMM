@@ -258,38 +258,7 @@ class BiotSavartComp(csdl.Model):
                 # self.print_var(v_induced_line)
                 # '''
 
-
-
-
         return v_induced_line
-
-
-class PosSqrt(csdl.CustomExplicitOperation):
-    def initialize(self):
-        self.parameters.declare('in_name')
-        self.parameters.declare('out_name')
-        self.parameters.declare('shape')
-    def define(self):
-        in_name = self.parameters['in_name']
-        out_name = self.parameters['out_name']
-        shape = self.parameters['shape']
-        self.add_input(in_name, shape=shape)
-        self.add_output(out_name, shape=shape)
-        self.declare_derivatives(out_name, in_name)
-    def compute(self, inputs, outputs):
-        in_name = self.parameters['in_name']
-        out_name = self.parameters['out_name']
-        outputs[out_name] = inputs[in_name]**0.5
-    def compute_derivatives(self, inputs, derivatives):
-        in_name = self.parameters['in_name']
-        out_name = self.parameters['out_name']
-        input = inputs[in_name]
-        input[input < 1e-3] = 1e-3
-        derivative = np.zeros((input.shape[0], input.shape[1], input.shape[0], input.shape[1]))
-        for i in range(input.shape[0]):
-            derivative[i,:,i,:] = np.diag(1/2 * input[i,:] ** (-1/2))
-        derivatives[out_name, in_name] = derivative
-
 
 class PosSqrt(csdl.CustomExplicitOperation):
     def initialize(self):

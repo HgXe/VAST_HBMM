@@ -5,6 +5,7 @@ from VAST.utils.custom_find_zeros_replace_eps import ReplaceZeros
 # from VAST.utils.custom_einsums import EinsumKijKijKi
 # from VAST.utils.custom_expands import ExpandIjkIjlk
 # from VAST.utils.custom_expands import ExpandIjkIljk
+from scipy.sparse import csc_array
 
 class BiotSavartComp(csdl.Model):
     """
@@ -42,7 +43,7 @@ class BiotSavartComp(csdl.Model):
 
         self.parameters.declare('circulation_names', default=None)
         self.parameters.declare('symmetry',default=False)
-        self.parameters.declare('sym_type', default=False)
+        self.parameters.declare('aic_symmetry_dict', default=False)
 
     def define(self):
         eval_pt_names = self.parameters['eval_pt_names']
@@ -54,11 +55,11 @@ class BiotSavartComp(csdl.Model):
         eps = self.parameters['eps']
         # circulation_names = self.parameters['circulation_names']
         symmetry = self.parameters['symmetry']
-        sym_type = self.parameters['sym_type']
+        aic_symmetry_dict = self.parameters['aic_symmetry_dict']
         # print('symmetry is---------------------------------------------', symmetry)
         print(eval_pt_names)
         print(vortex_coords_names)
-        exit()
+        # exit()
         for i in range(len(eval_pt_names)):
             # input_names
             eval_pt_name = eval_pt_names[i]
@@ -95,12 +96,13 @@ class BiotSavartComp(csdl.Model):
                 v_cd = self._induced_vel_line(self.r_C, self.r_D, self.r_C_norm, self.r_D_norm,'CD')
                 v_da = self._induced_vel_line(self.r_D, self.r_A, self.r_D_norm, self.r_A_norm,'DA')
 
-                AIC = v_ab + v_bc + v_cd + v_da           
+                AIC = v_ab + v_bc + v_cd + v_da     
             
             else:
                 nx = eval_pt_shape[1]
                 ny = eval_pt_shape[2]
-                if sym_type == None: # original symmetry case
+                if aic_symmetry_dict == False: # original symmetry case
+                    1
                     self.r_A, self.r_A_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], A, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'A')
                     self.r_B, self.r_B_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], B, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'B')
                     self.r_C, self.r_C_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], C, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'C')
@@ -114,23 +116,10 @@ class BiotSavartComp(csdl.Model):
                     AIC_half = v_ab + v_bc + v_cd + v_da      
                     # self.register_output('aic_half', AIC_half)             
                     # model_2 = csdl.Model()
-                    AIC = csdl.custom(AIC_half, op = SymmetryFlip(in_name=AIC_half.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name))
-                    
-                if sym_type[i] == 'self':
-                    self.r_A, self.r_A_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], A, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'A')
-                    self.r_B, self.r_B_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], B, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'B')
-                    self.r_C, self.r_C_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], C, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'C')
-                    self.r_D, self.r_D_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], D, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'D')
-                    
-                    v_ab = self._induced_vel_line(self.r_A, self.r_B, self.r_A_norm, self.r_B_norm,'AB')
-                    v_bc = self._induced_vel_line(self.r_B, self.r_C, self.r_B_norm, self.r_C_norm,'BC')
-                    v_cd = self._induced_vel_line(self.r_C, self.r_D, self.r_C_norm, self.r_D_norm,'CD')
-                    v_da = self._induced_vel_line(self.r_D, self.r_A, self.r_D_norm, self.r_A_norm,'DA')
-
-                    AIC_half = v_ab + v_bc + v_cd + v_da      
-                    # self.register_output('aic_half', AIC_half)             
-                    # model_2 = csdl.Model()
-                    AIC = csdl.custom(AIC_half, op = SymmetryFlip(in_name=AIC_half.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name))
+                    AIC = csdl.custom(AIC_half, op = ComputeFullAIC(in_name=AIC_half.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name))
+                    print(AIC_half.shape)
+                    print(AIC.shape)
+                    # exit()
                 
                 else:
                     # FIRST COMPUTE STANDARD METHOD FOR APPROPRIATE SURFACE
@@ -145,17 +134,23 @@ class BiotSavartComp(csdl.Model):
 
                     AIC = v_ab + v_bc + v_cd + v_da
 
-                    print(sym_type[i])
-                    for sym_surface in sym_type[i]:
-                        print(sym_surface)
+                    symmetry_names, symmetry_axes = aic_symmetry_dict[output_name]['names'], aic_symmetry_dict[output_name]['axis']
+                    ref_axis = aic_symmetry_dict[output_name]['ref_axis']
+                    AIC_vectorized = csdl.reshape(AIC, (AIC.shape[1]*AIC.shape[2],))
+                    for j, name in enumerate(symmetry_names):
+                        axis = symmetry_axes[j]  
 
-                
+                        
+
+                        # AIC_reflected = csdl.custom(AIC, op=AICReflection(in_name=AIC.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name, axis=axis, ref_axis=ref_axis))
+                        AIC_reflected_vectorized = csdl.custom(AIC_vectorized, op=AICReflection(in_name=AIC_vectorized.name, AIC_shape=AIC.shape, out_name=name+'_vec', axis=axis, ref_axis=ref_axis, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape,))
+                        AIC_reflected = csdl.reshape(AIC_reflected_vectorized, AIC.shape)
+                        self.register_output(name=name, var=AIC_reflected)
+
 
             self.register_output(output_name, AIC)
-        exit()
 
-
-            
+        1
 
     def __compute_expand_vecs(self, eval_pts, p_1, vortex_coords_shape, eval_pt_name, vortex_coords_name, output_name, point_name):
 
@@ -264,7 +259,7 @@ class BiotSavartComp(csdl.Model):
         return v_induced_line
 
 
-class SymmetryFlip(csdl.CustomExplicitOperation):
+class ComputeFullAIC(csdl.CustomExplicitOperation):
     """
     Compute the whole AIC matrix given half of it
 
@@ -316,6 +311,96 @@ class SymmetryFlip(csdl.CustomExplicitOperation):
         full_aic = np.concatenate((half_reshaped, other_half_aic), axis=2).reshape(num_nodes,-1,3)
         return full_aic
 
+class AICReflection(csdl.CustomExplicitOperation):
+    '''
+    Compute the AIC matrix of the reflected component based on the symmetry axis.
+    '''
+    def initialize(self):
+        self.parameters.declare('in_name', types=str)
+        self.parameters.declare('eval_pt_shape', types=tuple)
+        self.parameters.declare('vortex_coords_shape', types=tuple)
+        self.parameters.declare('AIC_shape', types=tuple)
+        self.parameters.declare('out_name', types=str)
+        self.parameters.declare('axis', types=str)
+        self.parameters.declare('ref_axis', types=str)
+
+    def define(self):
+        self.AIC_shape = AIC_shape = self.parameters['AIC_shape']
+        self.axis = axis = self.parameters['axis']
+        self.ref_axis = ref_axis = self.parameters['ref_axis']
+        num_row = AIC_shape[1]
+        num_col = AIC_shape[2]
+        eval_pt_shape = self.eval_pt_shape = self.parameters['eval_pt_shape']
+        vortex_coords_shape = self.vortex_coords_shape = self.parameters['vortex_coords_shape']
+        shape = eval_pt_shape[1]*eval_pt_shape[2]*(vortex_coords_shape[1]-1)*(vortex_coords_shape[2]-1)
+        num_nodes = eval_pt_shape[0]
+
+        vector_length = num_row*num_col
+        self.add_input(self.parameters['in_name'], shape=(vector_length,))
+        self.add_output(self.parameters['out_name'], shape=(vector_length,))
+
+        self.system_matrix = self.create_system_matrix(axis=axis, ref_axis=ref_axis, vector_length=vector_length)
+        # self.declare_derivatives(self.parameters['out_name'], self.parameters['in_name'],rows=row_indices,cols=col_indices,val=np.ones(row_indices.size))
+        self.declare_derivatives(self.parameters['out_name'], self.parameters['in_name']) # actual derivative value given in compute_derivatives
+
+    def compute(self, inputs, outputs):
+        outputs[self.parameters['out_name']] = np.matmul(self.system_matrix, self.parameters['in_name'])
+    
+    def compute_derivatives(self, inputs, derivatives):
+        derivatives[self.parameters['out_name'], self.parameters['in_name']] = self.system_matrix # can be dense or sparse
+
+    def create_system_matrix(self, axis, ref_axis, vector_length):
+        if ref_axis == 'self':
+            system_matrix = np.eye(3*vector_length)
+            if 'z' in axis:
+                system_matrix[:2*vector_length,:2*vector_length] *= -1
+        
+        if ref_axis == 'z':
+            system_matrix = np.eye(3*vector_length)
+            if 'z' in axis:
+                system_matrix[:2*vector_length,:2*vector_length] *= -1
+
+        if 'y' in ref_axis:
+            if axis == 'z':
+                system_matrix = np.eye(3*vector_length)
+                system_matrix[:2*vector_length,:2*vector_length] *= -1
+            else:
+                system_matrix = np.zeros((3*vector_length, 3*vector_length))
+                
+                inner_inner_inner_sub_matrix = np.flipud(np.eye(self.vortex_coords_shape[2]-1)) # Identity-turned anti-diagonal matrix
+                iiis_shape = inner_inner_inner_sub_matrix.shape
+
+                inner_inner_sub_matrix = np.zeros(((self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1),(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1)))
+                iis_shape =  inner_inner_sub_matrix.shape
+                for i in range(self.vortex_coords_shape[1]-1):
+                    inner_inner_sub_matrix[i*(self.vortex_coords_shape[2]-1):(i+1)*(self.vortex_coords_shape[2]-1), i*(self.vortex_coords_shape[2]-1):(i+1)*(self.vortex_coords_shape[2]-1)] = inner_inner_inner_sub_matrix # inserting matrices along diagonals
+                
+                inner_sub_matrix = np.zeros((self.eval_pt_shape[2]*(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1), self.eval_pt_shape[2]*(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1)))
+                is_shape = inner_sub_matrix.shape
+
+                for i in range(self.eval_pt_shape[2]): # number of eval points in y-direction (self.eval_pt_shape[2])
+                    inner_sub_matrix[i*iis_shape[0]:(i+1)*iis_shape[0], (self.eval_pt_shape[2]-(i+1))*iis_shape[0]:(self.eval_pt_shape[2]-i)*iis_shape[0]] = inner_inner_sub_matrix
+                # assembling along anti diagonal
+                sub_matrix = np.zeros((vector_length, vector_length)) 
+                for i in range(self.eval_pt_shape[1]): # number of eval points in x-direction (self.eval_pt_shape[1]):
+                    sub_matrix[i*is_shape[0]:(i+1)*is_shape[0], i*is_shape[0]:(i+1)*is_shape[0]] = inner_sub_matrix
+                
+                system_matrix[:vector_length, :vector_length] = sub_matrix
+                system_matrix[vector_length:2*vector_length, vector_length:2*vector_length] = sub_matrix
+                system_matrix[2*vector_length:, 2*vector_length:] = sub_matrix
+                if ref_axis == 'y':
+                    if axis == 'y':
+                        system_matrix[vector_length:2*vector_length, vector_length:2*vector_length] *= -1. # only on y
+                    else: # 'yz
+                        system_matrix[:vector_length, :vector_length] *= -1. # only on x
+
+                elif ref_axis == 'yz':
+                    if axis == 'y':
+                        system_matrix[vector_length:2*vector_length, vector_length:2*vector_length] *= -1. # only on y
+                    else: # 'yz
+                        system_matrix[:vector_length, :vector_length] *= -1. # only on x
+
+        return system_matrix
 
 if __name__ == "__main__":
     '''

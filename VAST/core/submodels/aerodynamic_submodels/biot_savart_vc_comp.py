@@ -379,7 +379,8 @@ class AICReflection(csdl.CustomExplicitOperation):
         self.declare_derivatives(self.parameters['out_name'], self.parameters['in_name']) # actual derivative value given in compute_derivatives
 
     def compute(self, inputs, outputs):
-        outputs[self.parameters['out_name']] = np.matmul(self.system_matrix, inputs[self.parameters['in_name']])
+        # outputs[self.parameters['out_name']] = np.matmul(self.system_matrix, inputs[self.parameters['in_name']])
+        outputs[self.parameters['out_name']] = self.system_matrix.dot(inputs[self.parameters['in_name']])
     
     def compute_derivatives(self, inputs, derivatives):
         derivatives[self.parameters['out_name'], self.parameters['in_name']] = self.system_matrix # can be dense or sparse
@@ -435,8 +436,10 @@ class AICReflection(csdl.CustomExplicitOperation):
                         system_matrix[asdf:2*asdf, asdf:2*asdf] *= -1. # only on y
                     else: # 'yz
                         system_matrix[:asdf, :asdf] *= -1. # only on x
-
-        return system_matrix
+        sparse_system_matrix = csc_array(system_matrix)
+        del system_matrix
+        # return system_matrix
+        return sparse_system_matrix
 
 if __name__ == "__main__":
     '''

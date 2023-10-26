@@ -502,44 +502,30 @@ class ProfileOPModel4(csdl.Model):
             surface_dwake_coords_dt[:, 0, :, :] = (TE  + wake_total_vel[:, 0, :, :]*delta_t - surface_wake_coords[:, 0, :, :]) / delta_t
             surface_dwake_coords_dt[:, 1:, :, :] = (surface_wake_coords[:, :(surface_wake_coords.shape[1] - 1), :, :] - surface_wake_coords[:, 1:, :, :] + wake_total_vel[:, 1:, :, :] * delta_t) / delta_t
 
+        submodel = POSubmodel(
+            surface_names=surface_names,
+            ode_surface_shapes=ode_surface_shapes,
+            delta_t=delta_t,
+            nt=nt,
+            symmetry=self.parameters['symmetry']
+        )
+        promotions = gen_promotions_list(surface_names, surface_shapes)
+        self.add(submodel, name='po_submodel', promotes=promotions)
+
+        
 
 
 
-def gen_profile_output_list(surface_names, surface_shapes):
-    outputs = []
-    gamma_b_len = 0
-    for surface_name, surface_shape in zip(surface_names, surface_shapes):
-        kv_name = surface_name + '_kinematic_vel'
-        kv_shape = ((surface_shape[1]-1)*(surface_shape[0]-1),3)
-        outputs.append((kv_name, kv_shape))
-        gb_name = surface_name + '_gamma_b'
-        gb_shape = (1,(surface_shape[1]-1)*(surface_shape[0]-1))
-        outputs.append((gb_name, gb_shape))
-        bvc_name = surface_name + '_bd_vtx_coords'
-        bvc_shape = (1,) + surface_shape
-        outputs.append((bvc_name, bvc_shape))
-        sp_name = surface_name + '_s_panel'
-        sp_shape = (1,surface_shape[0]-1, surface_shape[1]-1)
-        outputs.append((sp_name, sp_shape))
-        eval_pts_name = surface_name + '_eval_pts_coords'
-        eval_pts_shape = (1,surface_shape[0]-1, surface_shape[1]-1, 3)
-        outputs.append((eval_pts_name, eval_pts_shape))
-        gamma_b_len += (surface_shape[1]-1)*(surface_shape[0]-1)
-    outputs.append(('gamma_b', (1,gamma_b_len)))
-    # outputs.append(('evaluation_pt', (3,)))
-    outputs.append(('frame_vel', (1,3)))
-    outputs.append(('density', (1,1)))
-    outputs.append(('bd_vec', (1,gamma_b_len,3)))
-    outputs.append(('beta', (1,1)))
-    outputs.append(('alpha', (1,1)))
-    return outputs
 
 
-# input variables:
-### gamma b
 
 
-class PPSubmodel(csdl.Model):
+
+
+
+
+
+class POSubmodel(csdl.Model):
     def initialize(self):
         self.parameters.declare('surface_names')
         self.parameters.declare('ode_surface_shapes')
@@ -579,6 +565,108 @@ class PPSubmodel(csdl.Model):
             symmetry=self.parameters['symmetry'],
         )
         self.add(submodel, name='EvalPtsVel')
+
+
+
+
+
+
+
+
+def gen_profile_output_list(surface_names, surface_shapes):
+    outputs = []
+    gamma_b_len = 0
+    for surface_name, surface_shape in zip(surface_names, surface_shapes):
+        bvn_name = surface_name + '_bd_vtx_normals'
+        bvn_shape = (surface_shape[0]-1, surface_shape[1]-1, 3)
+        outputs.append((bvn_name, bvn_shape))
+
+        sp_name = surface_name + '_s_panel'
+        sp_shape = (1,surface_shape[0]-1, surface_shape[1]-1)
+        outputs.append((sp_name, sp_shape))
+
+        eval_pts_name = surface_name + '_eval_pts_coords' 
+        eval_pts_shape = (1,surface_shape[0]-1, surface_shape[1]-1, 3)
+        outputs.append((eval_pts_name, eval_pts_shape))
+        gamma_b_len += (surface_shape[1]-1)*(surface_shape[0]-1)
+
+        etv_name = surface_name + '_eval_total_vel'
+        etv_shape = (1,(surface_shape[1]-1)*(surface_shape[0]-1), 3)
+        outputs.append((etv_name, etv_shape))
+
+    outputs.append(('horseshoe_circulation', (1,gamma_b_len)))
+    outputs.append(('gamma_b', (1,gamma_b_len)))
+    outputs.append(('frame_vel', (1,3)))
+    outputs.append(('density', (1,1)))
+    outputs.append(('bd_vec', (1,gamma_b_len,3)))
+    outputs.append(('beta', (1,1)))
+    outputs.append(('alpha', (1,1)))
+    return outputs
+
+
+def gen_promotions_list(surface_names, surface_shapes):
+    outputs = []
+    gamma_b_len = 0
+    for surface_name, surface_shape in zip(surface_names, surface_shapes):
+        kv_name = surface_name + '_kinematic_vel'
+        outputs.append(kv_name)
+
+        gb_name = surface_name + '_gamma_b'
+        outputs.append(gb_name)
+
+        bvc_name = surface_name + '_bd_vtx_coords'
+        outputs.append(bvc_name)
+
+        bvn_name = surface_name + '_bd_vtx_normals' # newly needed
+        outputs.append(bvn_name)
+
+        sp_name = surface_name + '_s_panel'   # still needed
+        outputs.append(sp_name)
+
+        eval_pts_name = surface_name + '_eval_pts_coords' # still needed
+        outputs.append(eval_pts_name)
+
+        etv_name = surface_name + '_eval_total_vel' # newly needed
+        outputs.append(etv_name)
+
+    outputs.append('horseshoe_circulation')
+    outputs.append('gamma_b')
+    # outputs.append(('evaluation_pt', (3,)))
+    outputs.append('frame_vel') # still needed
+    outputs.append('density')  # still needed
+    outputs.append('bd_vec') # still needed
+    outputs.append('beta') # still needed
+    outputs.append('alpha') # still needed
+    return outputs
+
+
+
+
+
+
+
+# input variables:
+### gamma b
+
+
+class PPSubmodel(csdl.Model):
+    def initialize(self):
+        self.parameters.declare('surface_names')
+        self.parameters.declare('ode_surface_shapes')
+        self.parameters.declare('delta_t')
+        self.parameters.declare('nt')
+        self.parameters.declare('symmetry')
+    def define(self):
+        surface_names = self.parameters['surface_names']
+        ode_surface_shapes = self.parameters['ode_surface_shapes']
+        delta_t = self.parameters['delta_t']
+        nt = self.parameters['nt']
+
+        eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
+        eval_pts_shapes =        [
+            tuple(map(lambda i, j: i - j, item, (0, 1, 1, 0)))
+            for item in ode_surface_shapes
+        ]
 
         submodel = ThrustDrag(
             surface_names=surface_names,

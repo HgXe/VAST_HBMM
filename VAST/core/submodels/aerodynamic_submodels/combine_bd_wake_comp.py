@@ -52,8 +52,11 @@ S
                 wake_coords_name = surface_names[i] + '_wake_coords'
                 surface_gamma_w_name = surface_names[i] + '_gamma_w'
             elif self.parameters['problem_type'] == 'prescribed_wake':
-                wake_coords_name = 'op_'+surface_names[i] + '_wake_coords'
-                surface_gamma_w_name = 'op_'+surface_names[i] + '_gamma_w'
+                # wake_coords_name = 'op_'+surface_names[i] + '_wake_coords'
+                # surface_gamma_w_name = 'op_'+surface_names[i] + '_gamma_w'
+                wake_coords_name = surface_names[i] + '_wake_coords'
+                surface_gamma_w_name = surface_names[i] + '_gamma_w'
+
 
                 surface_gamma_w_shape = (num_nodes, (n_wake_pts_chord),
                                         (ny - 1))

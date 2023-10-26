@@ -558,7 +558,7 @@ class POSubmodel(csdl.Model):
             eval_pts_location=0.25,
             surface_names=surface_names,
             surface_shapes=ode_surface_shapes,
-            n_wake_pts_chord=nt-2,
+            n_wake_pts_chord=nt-1,
             delta_t=delta_t,
             problem_type='prescribed_wake',
             eps=4e-5,
@@ -628,6 +628,12 @@ def gen_promotions_list(surface_names, surface_shapes):
 
         etv_name = surface_name + '_eval_total_vel' # newly needed
         outputs.append(etv_name)
+
+        gw_name = surface_name + '_gamma_w'
+        outputs.append(gw_name)
+
+        wc_name = surface_name + '_wake_coords'
+        outputs.append(wc_name)
 
     outputs.append('horseshoe_circulation')
     outputs.append('gamma_b')

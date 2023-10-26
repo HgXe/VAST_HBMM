@@ -317,6 +317,7 @@ class ProfileOPModel4(csdl.Model):
         self.parameters.declare('sub',default=False)
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
+        self.parameters.declare('sym_struct_list', default=None)
 
     def define(self):
         # rename parameters
@@ -329,6 +330,8 @@ class ProfileOPModel4(csdl.Model):
         sub = self.parameters['sub']
         sub_eval_list = self.parameters['sub_eval_list']
         sub_induced_list = self.parameters['sub_induced_list']
+        symmetry = self.parameters['symmetry']
+        sym_struct_list = self.parameters['sym_struct_list']
         
         problem_type = 'prescribed_wake'
         if free_wake:
@@ -406,7 +409,8 @@ class ProfileOPModel4(csdl.Model):
                                 symmetry=self.parameters['symmetry'],
                                 sub = sub,
                                 sub_eval_list = sub_eval_list,
-                                sub_induced_list = sub_induced_list),
+                                sub_induced_list = sub_induced_list,
+                                sym_struct_list=sym_struct_list),
                     name='solve_gamma_b_group')
 
         self.add(SeperateGammab(surface_names=surface_names,
@@ -545,12 +549,21 @@ class PPSubmodel(csdl.Model):
         self.parameters.declare('ode_surface_shapes')
         self.parameters.declare('delta_t')
         self.parameters.declare('nt')
-        self.parameters.declare('symmetry')
+        self.parameters.declare('symmetry', default=False)
+        self.parameters.declare('sym_struct_list', default=None)
+        self.parameters.declare('sub', default=False)
+        self.parameters.declare('sub_eval_list', default=None)
+        self.parameters.declare('sub_induced_list', default=None)
     def define(self):
         surface_names = self.parameters['surface_names']
         ode_surface_shapes = self.parameters['ode_surface_shapes']
         delta_t = self.parameters['delta_t']
         nt = self.parameters['nt']
+        sub = self.parameters['sub']
+        sub_eval_list = self.parameters['sub_eval_list']
+        sub_induced_list = self.parameters['sub_induced_list']
+        symmetry = self.parameters['symmetry']
+        sym_struct_list = self.parameters['sym_struct_list']
 
         eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
         eval_pts_shapes =        [

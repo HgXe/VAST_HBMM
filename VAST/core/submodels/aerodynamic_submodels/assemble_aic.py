@@ -283,7 +283,6 @@ class AssembleAic(Model):
             # Assembling list of AIC names
             aic_names_list.append(dict_key)
             aic_names_list.extend(dict_list)
-        pass
         return interaction_groups_dict, aic_names_dict, aic_names_list
     
     def _adjust_biot_savart_inputs_for_symmetry(self, eval_pt_names, eval_pt_shapes, vortex_coords_names, vortex_coords_shapes, output_names, interaction_groups_dict, aic_names_dict, aic_names_list):

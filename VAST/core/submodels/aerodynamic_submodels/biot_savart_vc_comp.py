@@ -114,12 +114,7 @@ class BiotSavartComp(csdl.Model):
                     v_da = self._induced_vel_line(self.r_D, self.r_A, self.r_D_norm, self.r_A_norm,'DA')
 
                     AIC_half = v_ab + v_bc + v_cd + v_da      
-                    # self.register_output('aic_half', AIC_half)             
-                    # model_2 = csdl.Model()
                     AIC = csdl.custom(AIC_half, op = SymmetryFlip(in_name=AIC_half.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name))
-                    print(AIC_half.shape)
-                    print(AIC.shape)
-                    # exit()
                 
                 else:
                     # FIRST COMPUTE STANDARD METHOD FOR APPROPRIATE SURFACE
@@ -136,16 +131,28 @@ class BiotSavartComp(csdl.Model):
 
                     symmetry_names, symmetry_axes = aic_symmetry_dict[output_name]['names'], aic_symmetry_dict[output_name]['axis']
                     ref_axis = aic_symmetry_dict[output_name]['ref_axis']
-                    AIC_vectorized = csdl.reshape(AIC, (AIC.shape[1]*AIC.shape[2],))
+                    AIC_shape = AIC.shape # num_nodes, total number of interactions, 3 coordinates (x,y,z)
+                    AIC_inner_shape = np.prod(AIC_shape[1:]) # total size for each timestep
+                    AIC_vectorized = self.create_output(f'{output_name}_vec', shape=(AIC_shape[0]*AIC_shape[1]*AIC_shape[2],))
+
+                    for n in range(AIC_shape[0]):
+                        for m in range(AIC.shape[2]): # always 3 b/c 3rd dimension
+                            AIC_vectorized[n*AIC_inner_shape + m*AIC.shape[1]:n*AIC_inner_shape + (m+1)*AIC.shape[1]] = csdl.reshape(AIC[n,:,m], new_shape=(AIC.shape[1],))
+
+                    # AIC_vectorized = csdl.reshape(AIC, (AIC.shape[1]*AIC.shape[2],))
+                    
                     for j, name in enumerate(symmetry_names):
                         axis = symmetry_axes[j]  
 
-                        
-
                         # AIC_reflected = csdl.custom(AIC, op=AICReflection(in_name=AIC.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name, axis=axis, ref_axis=ref_axis))
                         AIC_reflected_vectorized = csdl.custom(AIC_vectorized, op=AICReflection(in_name=AIC_vectorized.name, AIC_shape=AIC.shape, out_name=name+'_vec', axis=axis, ref_axis=ref_axis, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape,))
-                        AIC_reflected = csdl.reshape(AIC_reflected_vectorized, AIC.shape)
-                        self.register_output(name=name, var=AIC_reflected)
+                        AIC_reflected = self.create_output(name, shape=AIC.shape)
+                        for k in range(AIC.shape[2]): # always 3 b/c 3rd dimension
+                            AIC_reflected[0,:,k] = csdl.reshape(AIC_reflected_vectorized[k*AIC.shape[1]:(k+1)*AIC.shape[1]], new_shape=(1,AIC.shape[1],1))
+
+                        # AIC_reflected = csdl.reshape(AIC_reflected_vectorized, AIC.shape)
+                        # self.register_output(name=name, var=AIC_reflected)
+                        1
 
 
             self.register_output(output_name, AIC)
@@ -372,28 +379,29 @@ class AICReflection(csdl.CustomExplicitOperation):
         self.declare_derivatives(self.parameters['out_name'], self.parameters['in_name']) # actual derivative value given in compute_derivatives
 
     def compute(self, inputs, outputs):
-        outputs[self.parameters['out_name']] = np.matmul(self.system_matrix, self.parameters['in_name'])
+        outputs[self.parameters['out_name']] = np.matmul(self.system_matrix, inputs[self.parameters['in_name']])
     
     def compute_derivatives(self, inputs, derivatives):
         derivatives[self.parameters['out_name'], self.parameters['in_name']] = self.system_matrix # can be dense or sparse
 
     def create_system_matrix(self, axis, ref_axis, vector_length):
+        asdf = int(vector_length/3)
         if ref_axis == 'self':
-            system_matrix = np.eye(3*vector_length)
+            system_matrix = np.eye(vector_length)
             if 'z' in axis:
-                system_matrix[:2*vector_length,:2*vector_length] *= -1
+                system_matrix[:2*asdf,:2*asdf] *= -1
         
         if ref_axis == 'z':
-            system_matrix = np.eye(3*vector_length)
+            system_matrix = np.eye(vector_length)
             if 'z' in axis:
-                system_matrix[:2*vector_length,:2*vector_length] *= -1
+                system_matrix[:2*asdf,:2*asdf] *= -1
 
         if 'y' in ref_axis:
             if axis == 'z':
-                system_matrix = np.eye(3*vector_length)
-                system_matrix[:2*vector_length,:2*vector_length] *= -1
+                system_matrix = np.eye(vector_length)
+                system_matrix[:2*asdf,:2*asdf] *= -1
             else:
-                system_matrix = np.zeros((3*vector_length, 3*vector_length))
+                system_matrix = np.zeros((vector_length, vector_length))
                 
                 inner_inner_inner_sub_matrix = np.flipud(np.eye(self.vortex_coords_shape[2]-1)) # Identity-turned anti-diagonal matrix
                 iiis_shape = inner_inner_inner_sub_matrix.shape
@@ -409,24 +417,24 @@ class AICReflection(csdl.CustomExplicitOperation):
                 for i in range(self.eval_pt_shape[2]): # number of eval points in y-direction (self.eval_pt_shape[2])
                     inner_sub_matrix[i*iis_shape[0]:(i+1)*iis_shape[0], (self.eval_pt_shape[2]-(i+1))*iis_shape[0]:(self.eval_pt_shape[2]-i)*iis_shape[0]] = inner_inner_sub_matrix
                 # assembling along anti diagonal
-                sub_matrix = np.zeros((vector_length, vector_length)) 
+                sub_matrix = np.zeros((asdf, asdf)) 
                 for i in range(self.eval_pt_shape[1]): # number of eval points in x-direction (self.eval_pt_shape[1]):
                     sub_matrix[i*is_shape[0]:(i+1)*is_shape[0], i*is_shape[0]:(i+1)*is_shape[0]] = inner_sub_matrix
                 
-                system_matrix[:vector_length, :vector_length] = sub_matrix
-                system_matrix[vector_length:2*vector_length, vector_length:2*vector_length] = sub_matrix
-                system_matrix[2*vector_length:, 2*vector_length:] = sub_matrix
+                system_matrix[:asdf, :asdf] = sub_matrix
+                system_matrix[asdf:2*asdf, asdf:2*asdf] = sub_matrix
+                system_matrix[2*asdf:, 2*asdf:] = sub_matrix
                 if ref_axis == 'y':
                     if axis == 'y':
-                        system_matrix[vector_length:2*vector_length, vector_length:2*vector_length] *= -1. # only on y
+                        system_matrix[asdf:2*asdf, asdf:2*asdf] *= -1. # only on y
                     else: # 'yz
-                        system_matrix[:vector_length, :vector_length] *= -1. # only on x
+                        system_matrix[:asdf, :asdf] *= -1. # only on x
 
                 elif ref_axis == 'yz':
                     if axis == 'y':
-                        system_matrix[vector_length:2*vector_length, vector_length:2*vector_length] *= -1. # only on y
+                        system_matrix[asdf:2*asdf, asdf:2*asdf] *= -1. # only on y
                     else: # 'yz
-                        system_matrix[:vector_length, :vector_length] *= -1. # only on x
+                        system_matrix[:asdf, :asdf] *= -1. # only on x
 
         return system_matrix
 

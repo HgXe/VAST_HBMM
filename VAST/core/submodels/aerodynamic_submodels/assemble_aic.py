@@ -62,10 +62,11 @@ class AssembleAic(Model):
 
             elif len_sym_set == 2:
                 if 'image' in bd_coll_pts_names[sym_set[0]]:
-                    print('image in 1')
+                    # print('image in 1')
+                    1
 
                 elif 'image' in bd_coll_pts_names[sym_set[1]]:
-                    print('image in 2')
+                    # print('image in 2')
                     sub_dict = {'ref': [sym_set[1]], 'axis': ['z']}
             
             elif len_sym_set == 4:
@@ -166,7 +167,7 @@ class AssembleAic(Model):
                                     y_ind = inner_reflected_axes.index('y')
                                     interaction_groups.append((surf, inner_reflected_surfaces[y_ind]))
                                     interaction_groups.extend([(outer_surf_list[1], inner_reflected_surfaces[i]) for i in range(len(inner_reflected_surfaces)) if i != y_ind])
-                                    ref_axis = 'self'
+                                    ref_axis = 'plane'
                                 
                                 elif dict_connections_axes[k] == 'yz':
                                     yz_ind = inner_reflected_axes.index('yz')
@@ -203,7 +204,7 @@ class AssembleAic(Model):
                                 interaction_groups.append((outer_surf_list[yz_ind+1], inner_surfaces[rem_loop_ind]))
 
                                 if k == 0:
-                                    ref_axis = 'self'
+                                    ref_axis = 'plane'
                                 else:
                                     ref_axis = 'z'
 
@@ -236,7 +237,7 @@ class AssembleAic(Model):
                                     interaction_groups_dict[interaction_groups[0]] = {
                                         'reflection' :interaction_groups[1:],
                                         'axis': interaction_axes,
-                                        'ref_axis': 'self'
+                                        'ref_axis': 'plane'
                                     }
                                 else:
                                     ind = inner_reflected_surfaces.index(loop_surf)
@@ -374,10 +375,6 @@ class AssembleAic(Model):
             aic_names_list = symmetry_outputs[2]
 
         if sub:
-            print('====')
-            print(bd_coll_pts_names)
-            print(wake_vortex_pts_names)
-            print('====')
 
             eval_pt_names_sub = []
             vortex_coords_names_sub = []
@@ -396,9 +393,6 @@ class AssembleAic(Model):
                 output_name_sub = full_aic_name  +'_'+ str(sub_eval_list[i]) +'_'+ str(sub_induced_list[i])
                 output_names_sub.append(output_name_sub)
             
-            print(eval_pt_names_sub)
-            print(vortex_coords_names_sub)
-            print(output_names_sub)
             if symmetry_structure == True: # NEED TO ADJUST INPUTS FOR THE ABOVE LISTS
                 1
                 sym_data = self._adjust_biot_savart_inputs_for_symmetry(eval_pt_names_sub, eval_pt_shapes_sub, vortex_coords_names_sub, vortex_coords_shapes_sub,
@@ -432,17 +426,40 @@ class AssembleAic(Model):
             sub_array = np.array([sub_eval_list,sub_induced_list])
 
         else:
+            if self.parameters['symmetry'] and sym_struct_list is not None:
+                sym_data = self._adjust_biot_savart_inputs_for_symmetry(eval_pt_names, eval_pt_shapes, vortex_coords_names, vortex_coords_shapes,
+                                                             output_names, interaction_groups_dict, aic_names_dict, aic_names_list)
+                
+                eval_pt_names_sub = sym_data[0] 
+                eval_pt_shapes_sub = sym_data[1]
+                vortex_coords_names_sub = sym_data[2]
+                vortex_coords_shapes_sub = sym_data[3]
+                output_names_sub = sym_data[4]
 
-            m = BiotSavartComp(
-                eval_pt_names=eval_pt_names,
-                vortex_coords_names=vortex_coords_names,
-                eval_pt_shapes=eval_pt_shapes,
-                vortex_coords_shapes=vortex_coords_shapes,
-                output_names=output_names,
-                vc=True,
-                symmetry=self.parameters['symmetry'],
-            )
-            self.add(m, name='aic_bd_w_seperate')
+                aic_symmetry_dict = aic_names_dict
+                
+                m = BiotSavartComp(
+                    eval_pt_names=eval_pt_names_sub,
+                    vortex_coords_names=vortex_coords_names_sub,
+                    eval_pt_shapes=eval_pt_shapes_sub,
+                    vortex_coords_shapes=vortex_coords_shapes_sub,
+                    output_names=output_names_sub,
+                    vc=True,
+                    symmetry=self.parameters['symmetry'],
+                    aic_symmetry_dict=aic_symmetry_dict
+                )
+                self.add(m, name='aic_bd_w_seperate')
+            else:
+                m = BiotSavartComp(
+                    eval_pt_names=eval_pt_names,
+                    vortex_coords_names=vortex_coords_names,
+                    eval_pt_shapes=eval_pt_shapes,
+                    vortex_coords_shapes=vortex_coords_shapes,
+                    output_names=output_names,
+                    vc=True,
+                    symmetry=self.parameters['symmetry'],
+                )
+                self.add(m, name='aic_bd_w_seperate')
 
         aic_shape = (num_nodes, aic_shape_row, aic_shape_col, 3)
 

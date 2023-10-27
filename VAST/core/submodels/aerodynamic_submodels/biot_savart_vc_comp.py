@@ -66,7 +66,7 @@ class BiotSavartComp(csdl.Model):
             vortex_coords_name = vortex_coords_names[i]
             # output_name
             output_name = output_names[i]
-            print('output name: ', output_name)
+            # print('output name: ', output_name)
             # input_shapes
             eval_pt_shape = eval_pt_shapes[i]
             vortex_coords_shape = vortex_coords_shapes[i]

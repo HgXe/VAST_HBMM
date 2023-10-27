@@ -87,7 +87,8 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
             nx = surface_shape[0]
             ny = surface_shape[1]
             self.ode_parameters.append(surface_name)
-            self.ode_parameters.append(surface_name + '_coll_vel')
+            if not self.free_wake:
+                self.ode_parameters.append(surface_name + '_coll_vel')
 
             ####################################
             # ode states names

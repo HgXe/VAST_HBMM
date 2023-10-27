@@ -51,6 +51,10 @@ class EvalPtsVel(Model):
         self.parameters.declare('problem_type',default='fixed_wake')
         self.parameters.declare('eps',default=1e-8)
         self.parameters.declare('symmetry',default=False)
+        self.parameters.declare('sym_struct_list', default=None)
+        self.parameters.declare('sub', default=False)
+        self.parameters.declare('sub_eval_list', default=None)
+        self.parameters.declare('sub_induced_list', default=None)
 
     def define(self):
         # eval_pts_names = self.parameters['eval_pts_names']
@@ -60,6 +64,12 @@ class EvalPtsVel(Model):
         eval_pts_location = self.parameters['eval_pts_location']
         mesh_unit = self.parameters['mesh_unit']
         eval_pts_option = self.parameters['eval_pts_option']
+
+        sub = self.parameters['sub']
+        sub_eval_list = self.parameters['sub_eval_list']
+        sub_induced_list = self.parameters['sub_induced_list']
+        symmetry = self.parameters['symmetry']
+        sym_struct_list = self.parameters['sym_struct_list']
 
         num_nodes = surface_shapes[0][0]
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
@@ -163,7 +173,8 @@ class EvalPtsVel(Model):
                 circulation_names=circulation_names,
                 vc=True,
                 eps=self.parameters['eps'],
-                symmetry=self.parameters['symmetry'],
+                # symmetry=self.parameters['symmetry'],
+                # aic_symmetry_dict=aic_symmetry_dict
             ),
             name='eval_pts_aics' + str(i))
 

@@ -39,6 +39,7 @@ class RHS(Model):
         self.parameters.declare('sub',default=False)
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
+        self.parameters.declare('sym_struct_list', default=None)
 
     def define(self):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
@@ -52,6 +53,7 @@ class RHS(Model):
         sub = self.parameters['sub']
         sub_eval_list = self.parameters['sub_eval_list']
         sub_induced_list = self.parameters['sub_induced_list']
+        sym_struct_list = self.parameters['sym_struct_list']
 
         bd_vtx_coords_names = [x + '_bd_vtx_coords' for x in surface_names]
         bd_vtx_normal_names = [x + '_bd_vtx_normals' for x in surface_names]
@@ -116,7 +118,8 @@ class RHS(Model):
                 symmetry=self.parameters['symmetry'],
                 sub = sub,
                 sub_eval_list = sub_eval_list,
-                sub_induced_list = sub_induced_list
+                sub_induced_list = sub_induced_list,
+                sym_struct_list=sym_struct_list
             )
 
         elif problem_type=='prescribed_wake':
@@ -142,7 +145,8 @@ class RHS(Model):
                 symmetry=self.parameters['symmetry'],
                 sub = sub,
                 sub_eval_list = sub_eval_list,
-                sub_induced_list = sub_induced_list
+                sub_induced_list = sub_induced_list,
+                sym_struct_list=sym_struct_list
                 # delta_t=delta_t,  # one line of wake vortex for fix wake
             )
         self.add(m, name='AssembleAic')
@@ -197,7 +201,8 @@ class RHS(Model):
             symmetry=self.parameters['symmetry'],
             sub = sub,
             sub_eval_list = sub_eval_list,
-            sub_induced_list = sub_induced_list
+            sub_induced_list = sub_induced_list,
+            sym_struct_list=sym_struct_list
             # delta_t=delta_t,  # one line of wake vortex for fix wake
         )
         self.add(m, name='AssembleAic_bd')

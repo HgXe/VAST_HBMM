@@ -34,6 +34,7 @@ class ODESystemModel(csdl.Model):
         self.parameters.declare('sub',default=False)
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
+        self.parameters.declare('sym_struct_list',default=None)
 
     def define(self):
         # rename parameters
@@ -46,6 +47,7 @@ class ODESystemModel(csdl.Model):
         sub = self.parameters['sub']
         sub_eval_list = self.parameters['sub_eval_list']
         sub_induced_list = self.parameters['sub_induced_list']
+        sym_struct_list = self.parameters['sym_struct_list']
         
         problem_type = 'prescribed_wake'
         if free_wake:
@@ -123,7 +125,8 @@ class ODESystemModel(csdl.Model):
                                 symmetry=self.parameters['symmetry'],
                                 sub = sub,
                                 sub_eval_list = sub_eval_list,
-                                sub_induced_list = sub_induced_list),
+                                sub_induced_list = sub_induced_list,
+                                sym_struct_list=sym_struct_list),
                     name='solve_gamma_b_group')
 
         self.add(SeperateGammab(surface_names=surface_names,

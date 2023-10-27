@@ -5,6 +5,7 @@ from VAST.utils.custom_find_zeros_replace_eps import ReplaceZeros
 # from VAST.utils.custom_einsums import EinsumKijKijKi
 # from VAST.utils.custom_expands import ExpandIjkIjlk
 # from VAST.utils.custom_expands import ExpandIjkIljk
+from scipy.sparse import csc_array
 
 class BiotSavartComp(csdl.Model):
     """
@@ -42,6 +43,7 @@ class BiotSavartComp(csdl.Model):
 
         self.parameters.declare('circulation_names', default=None)
         self.parameters.declare('symmetry',default=False)
+        self.parameters.declare('aic_symmetry_dict', default=False)
 
     def define(self):
         eval_pt_names = self.parameters['eval_pt_names']
@@ -53,14 +55,18 @@ class BiotSavartComp(csdl.Model):
         eps = self.parameters['eps']
         # circulation_names = self.parameters['circulation_names']
         symmetry = self.parameters['symmetry']
+        aic_symmetry_dict = self.parameters['aic_symmetry_dict']
         # print('symmetry is---------------------------------------------', symmetry)
-
+        # print(eval_pt_names)
+        # print(vortex_coords_names)
+        # exit()
         for i in range(len(eval_pt_names)):
             # input_names
             eval_pt_name = eval_pt_names[i]
             vortex_coords_name = vortex_coords_names[i]
             # output_name
             output_name = output_names[i]
+            # print('output name: ', output_name)
             # input_shapes
             eval_pt_shape = eval_pt_shapes[i]
             vortex_coords_shape = vortex_coords_shapes[i]
@@ -90,31 +96,78 @@ class BiotSavartComp(csdl.Model):
                 v_cd = self._induced_vel_line(self.r_C, self.r_D, self.r_C_norm, self.r_D_norm,'CD')
                 v_da = self._induced_vel_line(self.r_D, self.r_A, self.r_D_norm, self.r_A_norm,'DA')
 
-                AIC = v_ab + v_bc + v_cd + v_da           
+                AIC = v_ab + v_bc + v_cd + v_da    
+                # self.print_var(AIC) 
             
             else:
                 nx = eval_pt_shape[1]
                 ny = eval_pt_shape[2]
-                self.r_A, self.r_A_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], A, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'A')
-                self.r_B, self.r_B_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], B, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'B')
-                self.r_C, self.r_C_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], C, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'C')
-                self.r_D, self.r_D_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], D, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'D')
-                
-                v_ab = self._induced_vel_line(self.r_A, self.r_B, self.r_A_norm, self.r_B_norm,'AB')
-                v_bc = self._induced_vel_line(self.r_B, self.r_C, self.r_B_norm, self.r_C_norm,'BC')
-                v_cd = self._induced_vel_line(self.r_C, self.r_D, self.r_C_norm, self.r_D_norm,'CD')
-                v_da = self._induced_vel_line(self.r_D, self.r_A, self.r_D_norm, self.r_A_norm,'DA')
+                if aic_symmetry_dict == False: # original symmetry case
+                    
+                    self.r_A, self.r_A_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], A, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'A')
+                    self.r_B, self.r_B_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], B, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'B')
+                    self.r_C, self.r_C_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], C, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'C')
+                    self.r_D, self.r_D_norm = self.__compute_expand_vecs(eval_pts[:,:,:int(ny/2),:], D, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'D')
+                    
+                    v_ab = self._induced_vel_line(self.r_A, self.r_B, self.r_A_norm, self.r_B_norm,'AB')
+                    v_bc = self._induced_vel_line(self.r_B, self.r_C, self.r_B_norm, self.r_C_norm,'BC')
+                    v_cd = self._induced_vel_line(self.r_C, self.r_D, self.r_C_norm, self.r_D_norm,'CD')
+                    v_da = self._induced_vel_line(self.r_D, self.r_A, self.r_D_norm, self.r_A_norm,'DA')
 
-                AIC_half = v_ab + v_bc + v_cd + v_da      
-                # self.register_output('aic_half', AIC_half)             
-                # model_2 = csdl.Model()
-                AIC = csdl.custom(AIC_half, op = SymmetryFlip(in_name=AIC_half.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name))
+                    AIC_half = v_ab + v_bc + v_cd + v_da      
+                    AIC = csdl.custom(AIC_half, op = SymmetryFlip(in_name=AIC_half.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name))
                 
+                else:
+                    # FIRST COMPUTE STANDARD METHOD FOR APPROPRIATE SURFACE
+                    self.r_A, self.r_A_norm = self.__compute_expand_vecs(eval_pts, A, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'A')
+                    self.r_B, self.r_B_norm = self.__compute_expand_vecs(eval_pts, B, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'B')
+                    self.r_C, self.r_C_norm = self.__compute_expand_vecs(eval_pts, C, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'C')
+                    self.r_D, self.r_D_norm = self.__compute_expand_vecs(eval_pts, D, vortex_coords_shape,eval_pt_name,vortex_coords_name,output_name,'D')
+                    v_ab = self._induced_vel_line(self.r_A, self.r_B, self.r_A_norm, self.r_B_norm,'AB')
+                    v_bc = self._induced_vel_line(self.r_B, self.r_C, self.r_B_norm, self.r_C_norm,'BC')
+                    v_cd = self._induced_vel_line(self.r_C, self.r_D, self.r_C_norm, self.r_D_norm,'CD')
+                    v_da = self._induced_vel_line(self.r_D, self.r_A, self.r_D_norm, self.r_A_norm,'DA')
+
+                    AIC = v_ab + v_bc + v_cd + v_da
+                    # self.print_var(AIC)
+
+                    symmetry_names, symmetry_axes = aic_symmetry_dict[output_name]['names'], aic_symmetry_dict[output_name]['axis']
+                    ref_axis = aic_symmetry_dict[output_name]['ref_axis']
+                    AIC_shape = AIC.shape # num_nodes, total number of interactions, 3 coordinates (x,y,z)
+                    AIC_inner_shape = np.prod(AIC_shape[1:]) # total size for each timestep
+                    AIC_vectorized = self.create_output(f'{output_name}_vec', shape=(AIC_shape[0]*AIC_shape[1]*AIC_shape[2],))
+
+                    for n in range(AIC_shape[0]):
+                        for m in range(AIC.shape[2]): # always 3 b/c 3rd dimension
+                            AIC_vectorized[n*AIC_inner_shape + m*AIC.shape[1]:n*AIC_inner_shape + (m+1)*AIC.shape[1]] = csdl.reshape(AIC[n,:,m], new_shape=(AIC.shape[1],))
+
+                    # AIC_vectorized = csdl.reshape(AIC, (AIC.shape[1]*AIC.shape[2],))
+                    # print(output_name)
+                    for j, name in enumerate(symmetry_names):
+                        axis = symmetry_axes[j]  
+
+                        # AIC_reflected = csdl.custom(AIC, op=AICReflection(in_name=AIC.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name, axis=axis, ref_axis=ref_axis))
+                        plot=False
+                        # if name == 'aic_bd_2_0':
+                        #     plot=True
+                        # if 'bd' in name:
+                        #     print(name)
+                        #     plot=True
+
+                        AIC_reflected_vectorized = csdl.custom(AIC_vectorized, op=AICReflection(in_name=AIC_vectorized.name, AIC_shape=AIC.shape, out_name=name+'_vec', axis=axis, ref_axis=ref_axis, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape,plot=plot))
+                        AIC_reflected = self.create_output(name, shape=AIC.shape)
+                        for k in range(AIC.shape[2]): # always 3 b/c 3rd dimension
+                            AIC_reflected[0,:,k] = csdl.reshape(AIC_reflected_vectorized[k*AIC.shape[1]:(k+1)*AIC.shape[1]], new_shape=(1,AIC.shape[1],1))
+
+                        # self.print_var(AIC_reflected)
+                        # AIC_reflected = csdl.reshape(AIC_reflected_vectorized, AIC.shape)
+                        # self.register_output(name=name, var=AIC_reflected)
+                        1
+
 
             self.register_output(output_name, AIC)
 
-
-            
+        1
 
     def __compute_expand_vecs(self, eval_pts, p_1, vortex_coords_shape, eval_pt_name, vortex_coords_name, output_name, point_name):
 
@@ -222,11 +275,7 @@ class BiotSavartComp(csdl.Model):
                 # self.print_var(v_induced_line)
                 # '''
 
-
-
-
         return v_induced_line
-
 
 class PosSqrt(csdl.CustomExplicitOperation):
     def initialize(self):
@@ -307,6 +356,206 @@ class SymmetryFlip(csdl.CustomExplicitOperation):
         full_aic = np.concatenate((half_reshaped, other_half_aic), axis=2).reshape(num_nodes,-1,3)
         return full_aic
 
+class AICReflection(csdl.CustomExplicitOperation):
+    '''
+    Compute the AIC matrix of the reflected component based on the symmetry axis.
+    '''
+    def initialize(self):
+        self.parameters.declare('in_name', types=str)
+        self.parameters.declare('eval_pt_shape', types=tuple)
+        self.parameters.declare('vortex_coords_shape', types=tuple)
+        self.parameters.declare('AIC_shape', types=tuple)
+        self.parameters.declare('out_name', types=str)
+        self.parameters.declare('axis', types=str)
+        self.parameters.declare('ref_axis', types=str)
+        self.parameters.declare('plot', default=False)
+
+    def define(self):
+        self.AIC_shape = AIC_shape = self.parameters['AIC_shape']
+        self.axis = axis = self.parameters['axis']
+        self.ref_axis = ref_axis = self.parameters['ref_axis']
+        num_row = AIC_shape[1]
+        num_col = AIC_shape[2]
+        eval_pt_shape = self.eval_pt_shape = self.parameters['eval_pt_shape']
+        vortex_coords_shape = self.vortex_coords_shape = self.parameters['vortex_coords_shape']
+        shape = eval_pt_shape[1]*eval_pt_shape[2]*(vortex_coords_shape[1]-1)*(vortex_coords_shape[2]-1)
+        num_nodes = eval_pt_shape[0]
+
+        vector_length = num_row*num_col
+        self.add_input(self.parameters['in_name'], shape=(vector_length,))
+        self.add_output(self.parameters['out_name'], shape=(vector_length,))
+
+        self.system_matrix = self.create_system_matrix(axis=axis, ref_axis=ref_axis, vector_length=vector_length)
+        
+        if self.parameters['plot'] == True:
+            data_to_print = self.system_matrix.nonzero()
+            data_rows, data_cols = data_to_print[0], data_to_print[1]
+            for i in range(len(data_rows)):
+                print(data_rows[i], data_cols[i], self.system_matrix[data_rows[i], data_cols[i]])
+            import matplotlib.pyplot as plt
+            plt.spy(self.system_matrix[:int(vector_length/3), :int(vector_length/3)])
+            plt.show()
+            # exit()
+
+        # self.declare_derivatives(self.parameters['out_name'], self.parameters['in_name'],rows=row_indices,cols=col_indices,val=np.ones(row_indices.size))
+        self.declare_derivatives(self.parameters['out_name'], self.parameters['in_name']) # actual derivative value given in compute_derivatives
+
+    def compute(self, inputs, outputs):
+        # outputs[self.parameters['out_name']] = np.matmul(self.system_matrix, inputs[self.parameters['in_name']])
+        outputs[self.parameters['out_name']] = self.system_matrix.dot(inputs[self.parameters['in_name']])
+    
+    def compute_derivatives(self, inputs, derivatives):
+        derivatives[self.parameters['out_name'], self.parameters['in_name']] = self.system_matrix # can be dense or sparse
+
+    def generate_permutation_matrix(self, vector_length, axis):
+        asdf = int(vector_length/3)
+        system_matrix = np.zeros((vector_length, vector_length))
+        inner_inner_inner_sub_matrix = np.flipud(np.eye(self.vortex_coords_shape[2]-1)) # Identity-turned anti-diagonal matrix
+        iiis_shape = inner_inner_inner_sub_matrix.shape
+
+        inner_inner_sub_matrix = np.zeros(((self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1),(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1)))
+        iis_shape =  inner_inner_sub_matrix.shape
+        for i in range(self.vortex_coords_shape[1]-1):
+            inner_inner_sub_matrix[i*(self.vortex_coords_shape[2]-1):(i+1)*(self.vortex_coords_shape[2]-1), i*(self.vortex_coords_shape[2]-1):(i+1)*(self.vortex_coords_shape[2]-1)] = inner_inner_inner_sub_matrix # inserting matrices along diagonals
+        
+        inner_sub_matrix = np.zeros((self.eval_pt_shape[2]*(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1), self.eval_pt_shape[2]*(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1)))
+        is_shape = inner_sub_matrix.shape
+
+        for i in range(self.eval_pt_shape[2]): # number of eval points in y-direction (self.eval_pt_shape[2])
+            inner_sub_matrix[i*iis_shape[0]:(i+1)*iis_shape[0], (self.eval_pt_shape[2]-(i+1))*iis_shape[0]:(self.eval_pt_shape[2]-i)*iis_shape[0]] = inner_inner_sub_matrix
+        # assembling along anti diagonal
+        sub_matrix = np.zeros((asdf, asdf)) 
+        for i in range(self.eval_pt_shape[1]): # number of eval points in x-direction (self.eval_pt_shape[1]):
+            sub_matrix[i*is_shape[0]:(i+1)*is_shape[0], i*is_shape[0]:(i+1)*is_shape[0]] = inner_sub_matrix
+        
+        system_matrix[:asdf, :asdf] = sub_matrix
+        system_matrix[asdf:2*asdf, asdf:2*asdf] = sub_matrix
+        system_matrix[2*asdf:, 2*asdf:] = sub_matrix
+        if axis == 'y':
+            system_matrix[asdf:2*asdf, asdf:2*asdf] *= -1. # only on y
+        else: # 'yz
+            system_matrix[:asdf, :asdf] *= -1. # only on x
+        return system_matrix
+
+    def create_system_matrix(self, axis, ref_axis, vector_length):
+        asdf = int(vector_length/3)
+        if ref_axis == 'self':
+            system_matrix = np.eye(vector_length)
+            if 'z' in axis:
+                system_matrix[:2*asdf,:2*asdf] *= -1
+        elif ref_axis == 'plane':
+            if axis == 'z':
+                system_matrix = np.eye(vector_length)
+                system_matrix[:2*asdf,:2*asdf] *= -1
+            else:
+                system_matrix = self.generate_permutation_matrix(vector_length, axis)
+                # system_matrix = np.zeros((vector_length, vector_length))
+                    
+                # inner_inner_inner_sub_matrix = np.flipud(np.eye(self.vortex_coords_shape[2]-1)) # Identity-turned anti-diagonal matrix
+                # iiis_shape = inner_inner_inner_sub_matrix.shape
+
+                # inner_inner_sub_matrix = np.zeros(((self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1),(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1)))
+                # iis_shape =  inner_inner_sub_matrix.shape
+                # for i in range(self.vortex_coords_shape[1]-1):
+                #     inner_inner_sub_matrix[i*(self.vortex_coords_shape[2]-1):(i+1)*(self.vortex_coords_shape[2]-1), i*(self.vortex_coords_shape[2]-1):(i+1)*(self.vortex_coords_shape[2]-1)] = inner_inner_inner_sub_matrix # inserting matrices along diagonals
+                
+                # inner_sub_matrix = np.zeros((self.eval_pt_shape[2]*(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1), self.eval_pt_shape[2]*(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1)))
+                # is_shape = inner_sub_matrix.shape
+
+                # for i in range(self.eval_pt_shape[2]): # number of eval points in y-direction (self.eval_pt_shape[2])
+                #     inner_sub_matrix[i*iis_shape[0]:(i+1)*iis_shape[0], (self.eval_pt_shape[2]-(i+1))*iis_shape[0]:(self.eval_pt_shape[2]-i)*iis_shape[0]] = inner_inner_sub_matrix
+                # # assembling along anti diagonal
+                # sub_matrix = np.zeros((asdf, asdf)) 
+                # for i in range(self.eval_pt_shape[1]): # number of eval points in x-direction (self.eval_pt_shape[1]):
+                #     sub_matrix[i*is_shape[0]:(i+1)*is_shape[0], i*is_shape[0]:(i+1)*is_shape[0]] = inner_sub_matrix
+                
+                # system_matrix[:asdf, :asdf] = sub_matrix
+                # system_matrix[asdf:2*asdf, asdf:2*asdf] = sub_matrix
+                # system_matrix[2*asdf:, 2*asdf:] = sub_matrix
+                # if axis == 'y':
+                #     system_matrix[asdf:2*asdf, asdf:2*asdf] *= -1. # only on y
+                # else: # 'yz
+                #     system_matrix[:asdf, :asdf] *= -1. # only on x
+                    
+        elif ref_axis == 'z':
+            if axis == 'z':
+                system_matrix = np.eye(vector_length)
+                system_matrix[:2*asdf,:2*asdf] *= -1
+            else:
+                system_matrix = self.generate_permutation_matrix(vector_length, axis)
+                # system_matrix = np.zeros((vector_length, vector_length))
+                    
+                # inner_inner_inner_sub_matrix = np.flipud(np.eye(self.vortex_coords_shape[2]-1)) # Identity-turned anti-diagonal matrix
+                # iiis_shape = inner_inner_inner_sub_matrix.shape
+
+                # inner_inner_sub_matrix = np.zeros(((self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1),(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1)))
+                # iis_shape =  inner_inner_sub_matrix.shape
+                # for i in range(self.vortex_coords_shape[1]-1):
+                #     inner_inner_sub_matrix[i*(self.vortex_coords_shape[2]-1):(i+1)*(self.vortex_coords_shape[2]-1), i*(self.vortex_coords_shape[2]-1):(i+1)*(self.vortex_coords_shape[2]-1)] = inner_inner_inner_sub_matrix # inserting matrices along diagonals
+                
+                # inner_sub_matrix = np.zeros((self.eval_pt_shape[2]*(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1), self.eval_pt_shape[2]*(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1)))
+                # is_shape = inner_sub_matrix.shape
+
+                # for i in range(self.eval_pt_shape[2]): # number of eval points in y-direction (self.eval_pt_shape[2])
+                #     inner_sub_matrix[i*iis_shape[0]:(i+1)*iis_shape[0], (self.eval_pt_shape[2]-(i+1))*iis_shape[0]:(self.eval_pt_shape[2]-i)*iis_shape[0]] = inner_inner_sub_matrix
+                # # assembling along anti diagonal
+                # sub_matrix = np.zeros((asdf, asdf)) 
+                # for i in range(self.eval_pt_shape[1]): # number of eval points in x-direction (self.eval_pt_shape[1]):
+                #     sub_matrix[i*is_shape[0]:(i+1)*is_shape[0], i*is_shape[0]:(i+1)*is_shape[0]] = inner_sub_matrix
+                
+                # system_matrix[:asdf, :asdf] = sub_matrix
+                # system_matrix[asdf:2*asdf, asdf:2*asdf] = sub_matrix
+                # system_matrix[2*asdf:, 2*asdf:] = sub_matrix
+                # if axis == 'y':
+                #     system_matrix[asdf:2*asdf, asdf:2*asdf] *= -1. # only on y
+                # else: # 'yz
+                #     system_matrix[:asdf, :asdf] *= -1. # only on x
+
+        elif 'y' in ref_axis:
+            if axis == 'z':
+                system_matrix = np.eye(vector_length)
+                system_matrix[:2*asdf,:2*asdf] *= -1
+            else:
+                system_matrix = self.generate_permutation_matrix(vector_length, axis)
+                # system_matrix = np.zeros((vector_length, vector_length))
+                
+                # inner_inner_inner_sub_matrix = np.flipud(np.eye(self.vortex_coords_shape[2]-1)) # Identity-turned anti-diagonal matrix
+                # iiis_shape = inner_inner_inner_sub_matrix.shape
+
+                # inner_inner_sub_matrix = np.zeros(((self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1),(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1)))
+                # iis_shape =  inner_inner_sub_matrix.shape
+                # for i in range(self.vortex_coords_shape[1]-1):
+                #     inner_inner_sub_matrix[i*(self.vortex_coords_shape[2]-1):(i+1)*(self.vortex_coords_shape[2]-1), i*(self.vortex_coords_shape[2]-1):(i+1)*(self.vortex_coords_shape[2]-1)] = inner_inner_inner_sub_matrix # inserting matrices along diagonals
+                
+                # inner_sub_matrix = np.zeros((self.eval_pt_shape[2]*(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1), self.eval_pt_shape[2]*(self.vortex_coords_shape[1]-1)*(self.vortex_coords_shape[2]-1)))
+                # is_shape = inner_sub_matrix.shape
+
+                # for i in range(self.eval_pt_shape[2]): # number of eval points in y-direction (self.eval_pt_shape[2])
+                #     inner_sub_matrix[i*iis_shape[0]:(i+1)*iis_shape[0], (self.eval_pt_shape[2]-(i+1))*iis_shape[0]:(self.eval_pt_shape[2]-i)*iis_shape[0]] = inner_inner_sub_matrix
+                # # assembling along anti diagonal
+                # sub_matrix = np.zeros((asdf, asdf)) 
+                # for i in range(self.eval_pt_shape[1]): # number of eval points in x-direction (self.eval_pt_shape[1]):
+                #     sub_matrix[i*is_shape[0]:(i+1)*is_shape[0], i*is_shape[0]:(i+1)*is_shape[0]] = inner_sub_matrix
+                
+                # system_matrix[:asdf, :asdf] = sub_matrix
+                # system_matrix[asdf:2*asdf, asdf:2*asdf] = sub_matrix
+                # system_matrix[2*asdf:, 2*asdf:] = sub_matrix
+                # if ref_axis == 'y':
+                #     if axis == 'y':
+                #         system_matrix[asdf:2*asdf, asdf:2*asdf] *= -1. # only on y
+                #     else: # 'yz
+                #         system_matrix[:asdf, :asdf] *= -1. # only on x
+
+                # elif ref_axis == 'yz':
+                #     if axis == 'y':
+                #         system_matrix[asdf:2*asdf, asdf:2*asdf] *= -1. # only on y
+                #     else: # 'yz
+                #         system_matrix[:asdf, :asdf] *= -1. # only on x
+        
+        sparse_system_matrix = csc_array(system_matrix)
+        del system_matrix
+        # return system_matrix
+        return sparse_system_matrix
 
 if __name__ == "__main__":
     '''

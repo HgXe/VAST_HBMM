@@ -43,6 +43,7 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.parameters.declare('sub',default=False)
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
+        self.parameters.declare('sym_struct_list', default=None)
     def assign_atributes(self):
         self.num_nodes = self.parameters['num_nodes']
         self.surface_names = self.parameters['surface_names']
@@ -58,6 +59,7 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.sub = self.parameters['sub']
         self.sub_eval_list = self.parameters['sub_eval_list']
         self.sub_induced_list = self.parameters['sub_induced_list']
+        self.sym_struct_list = self.parameters['sym_struct_list']
     def evaluate(self):
         self.assign_atributes()
         num_nodes = self.num_nodes
@@ -134,7 +136,8 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
                                free_wake=self.free_wake,
                                sub = self.sub,
                                sub_eval_list = self.sub_eval_list,
-                               sub_induced_list = self.sub_induced_list
+                               sub_induced_list = self.sub_induced_list,
+                               sym_struct_list=self.sym_struct_list
                                )
         return model
 
@@ -152,6 +155,7 @@ class PostProcessor(csdl.Model):
         self.parameters.declare('sub',default=False)
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
+        self.parameters.declare('sym_struct_list', default=None)
 
     def define(self):
         num_nodes = self.parameters['num_nodes']
@@ -166,6 +170,8 @@ class PostProcessor(csdl.Model):
         sub = self.parameters['sub']
         sub_eval_list = self.parameters['sub_eval_list']
         sub_induced_list = self.parameters['sub_induced_list']
+
+        sym_struct_list = self.parameters['sym_struct_list']
 
         ode_surface_shapes = [(nt-1, ) + item for item in surface_shapes]
         eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
@@ -203,7 +209,8 @@ class PostProcessor(csdl.Model):
                                 symmetry=self.parameters['symmetry'],
                                 sub = sub,
                                 sub_eval_list = sub_eval_list,
-                                sub_induced_list = sub_induced_list),
+                                sub_induced_list = sub_induced_list,
+                                sym_struct_list=sym_struct_list),
                     name='solve_gamma_b_group')
         self.add(SeperateGammab(surface_names=surface_names,
                                 surface_shapes=ode_surface_shapes),

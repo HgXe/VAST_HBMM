@@ -46,12 +46,21 @@ class EvalPtsVel(Model):
         self.parameters.declare('n_wake_pts_chord')
         self.parameters.declare('problem_type')
         self.parameters.declare('symmetry',default=False)
+        self.parameters.declare('sub', default=False)
+        self.parameters.declare('sub_eval_list', default=None)
+        self.parameters.declare('sub_induced_list', default=None)
+        self.parameters.declare('sym_struct_list', default=None)
 
     def define(self):
         eval_pts_names = self.parameters['eval_pts_names']
         eval_pts_shapes = self.parameters['eval_pts_shapes']
         surface_names = self.parameters['surface_names']
         surface_shapes = self.parameters['surface_shapes']
+        
+        sub = self.parameters['sub']
+        sub_eval_list = self.parameters['sub_eval_list']
+        sub_induced_list = self.parameters['sub_induced_list']
+        sym_struct_list = self.parameters['sym_struct_list']
 
         num_nodes = surface_shapes[0][0]
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
@@ -169,4 +178,3 @@ class EvalPtsVel(Model):
             self.register_output(
                 name=eval_induced_velocities_names[i],
                 var=csdl.reshape(eval_induced_velocity,(num_nodes,n_wake_pts_chord,ny,3)))
-        x = 1

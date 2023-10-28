@@ -66,6 +66,10 @@ class ComputeWakeTotalVel(Model):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
         problem_type = self.parameters['problem_type']
 
+        sub = self.parameters['sub']
+        sub_eval_list = self.parameters['sub_eval_list']
+        sub_induced_list = self.parameters['sub_induced_list']
+        sym_struct_list = self.parameters['sym_struct_list']
 
         submodel = ComputeWakeKinematicVel(
             surface_names=surface_names,
@@ -86,6 +90,10 @@ class ComputeWakeTotalVel(Model):
                 n_wake_pts_chord=n_wake_pts_chord,
                 problem_type='prescribed_wake',
                 symmetry=self.parameters['symmetry'],
+                sub=sub, 
+                sub_eval_list=sub_eval_list,
+                sub_induced_list=sub_induced_list,
+                sym_struct_list=sym_struct_list
                 
             )
             self.add(submodel, name='EvalPtsVel')

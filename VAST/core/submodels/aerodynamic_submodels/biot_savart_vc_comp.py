@@ -235,7 +235,7 @@ class BiotSavartComp(csdl.Model):
             # num_expand = jnp.einsum('ij,l->ijl', num, jnp.ones(3))
             v_induced_line = num_expand * one_over_den
         else:
-            new_vc=True
+            new_vc=False
             if new_vc:
                 core_size = 0.05
                 dor_r1_r2 = csdl.sum(r_1*r_2,axes=(2,))

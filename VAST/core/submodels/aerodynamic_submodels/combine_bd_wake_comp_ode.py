@@ -37,7 +37,7 @@ S
             bd_n_wake_coords_name = surface_names[i] + '_bdnwake_coords'
 
             surface_gamma_b_name = surface_names[i] + '_gamma_b'
-            bd_n_wake_circulation_name = surface_names[i] + '_bdnwake_gamma'
+            bd_n_wake_circulation_name = surface_names[i] + '_bdnwake_gamma_wake'
 
             surface_shape = surface_shapes[i]
 

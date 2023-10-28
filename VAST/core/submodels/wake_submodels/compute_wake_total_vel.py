@@ -54,7 +54,10 @@ class ComputeWakeTotalVel(Model):
         self.parameters.declare('n_wake_pts_chord') # we need this to combine bd and wake 
         self.parameters.declare('symmetry',default=False)
         self.parameters.declare('problem_type', default='prescribed_wake')
-
+        self.parameters.declare('sub', default=False)
+        self.parameters.declare('sub_eval_list', default=None)
+        self.parameters.declare('sub_induced_list', default=None)
+        self.parameters.declare('sym_struct_list', default=None)
 
     def define(self):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
@@ -95,8 +98,7 @@ class ComputeWakeTotalVel(Model):
         for i in range(len(surface_names)):
             wake_kinematic_vel = self.declare_variable(wake_kinematic_vel_names[i],shape=wake_vortex_pts_shapes[i])
             wake_induced_vel = self.declare_variable(eval_induced_velocities_names[i],shape=wake_vortex_pts_shapes[i], val=0.)
-            # NOTE: wake_induced_vel cane be non-zero only if problem_type == 'free_wake'
-            # wake_induced_vel = 0.
+            # NOTE: wake_induced_vel can be non-zero only if problem_type == 'free_wake'
 
             # print('vars-------------')
             # self.print_var(wake_kinematic_vel)

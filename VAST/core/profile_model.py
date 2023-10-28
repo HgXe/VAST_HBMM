@@ -485,7 +485,13 @@ class ProfileOPModel4(csdl.Model):
         self.add(ComputeWakeTotalVel(surface_names=surface_names,
                                 surface_shapes=ode_surface_shapes,
                                 n_wake_pts_chord=nt-1,
-                                problem_type=problem_type),
+                                problem_type=problem_type,
+                                # symmetry=self.parameters['symmetry'],
+                                # sub=sub,
+                                # sub_eval_list=sub_eval_list,
+                                # sub_induced_list=sub_induced_list,
+                                # sym_struct_list=sym_struct_list
+                                ),
                  name='ComputeWakeTotalVel')            
         for i in range(len(surface_names)):
             nx = bd_vortex_shapes[i][0]

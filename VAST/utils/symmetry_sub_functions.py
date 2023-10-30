@@ -32,7 +32,9 @@ def generate_symmetry_groups(sym_struct_list, bd_coll_pts_names, full_aic_name):
                     axis_list.append('y')
                 elif bool_val == True:
                     ref_list.append(ref_surf[j])
-                    dummy_string = bd_coll_pts_names[ref_surf[j]].replace('_mirror','')
+                    ref_surface_name = bd_coll_pts_names[ref_surf[j]] 
+                    del_ind = ref_surface_name.find('_mirror') # FINDING FIRST INDEX WITH _MIRROR
+                    dummy_string = ref_surface_name.replace(ref_surface_name[del_ind:],'') # DELETING THAT PART OF THE STRING AND ON
                     # if dummy_string == bd_coll_pts_names[sym_set[0]]:
                     if dummy_string in bd_coll_pts_names[sym_set[0]]:
                         axis_list.append('z')

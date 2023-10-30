@@ -12,12 +12,12 @@ def generate_symmetry_groups(sym_struct_list, bd_coll_pts_names, full_aic_name):
             pass
 
         elif len_sym_set == 2:
-            if 'image' in bd_coll_pts_names[sym_set[0]]:
-                # print('image in 1')
+            if 'mirror' in bd_coll_pts_names[sym_set[0]]:
+                # print('mirror in 1')
                 1
 
-            elif 'image' in bd_coll_pts_names[sym_set[1]]:
-                # print('image in 2')
+            elif 'mirror' in bd_coll_pts_names[sym_set[1]]:
+                # print('mirror in 2')
                 sub_dict = {'ref': [sym_set[1]], 'axis': ['z']}
         
         elif len_sym_set == 4:
@@ -25,15 +25,16 @@ def generate_symmetry_groups(sym_struct_list, bd_coll_pts_names, full_aic_name):
             axis_list = []
 
             ref_surf = sym_set[1:]
-            image_in_surf = ['image' in bd_coll_pts_names[i] for i in ref_surf]
-            for j, bool_val in enumerate(image_in_surf):
+            mirror_in_surf = ['mirror' in bd_coll_pts_names[i] for i in ref_surf]
+            for j, bool_val in enumerate(mirror_in_surf):
                 if bool_val == False:
                     ref_list.append(ref_surf[j])
                     axis_list.append('y')
                 elif bool_val == True:
                     ref_list.append(ref_surf[j])
-                    dummy_string = bd_coll_pts_names[ref_surf[j]].replace('image_','')
-                    if dummy_string == bd_coll_pts_names[sym_set[0]]:
+                    dummy_string = bd_coll_pts_names[ref_surf[j]].replace('_mirror','')
+                    # if dummy_string == bd_coll_pts_names[sym_set[0]]:
+                    if dummy_string in bd_coll_pts_names[sym_set[0]]:
                         axis_list.append('z')
                     else:
                         axis_list.append('yz')

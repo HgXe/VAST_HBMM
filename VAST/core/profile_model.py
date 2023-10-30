@@ -486,11 +486,11 @@ class ProfileOPModel4(csdl.Model):
                                 surface_shapes=ode_surface_shapes,
                                 n_wake_pts_chord=nt-1,
                                 problem_type=problem_type,
-                                # symmetry=self.parameters['symmetry'],
-                                # sub=sub,
-                                # sub_eval_list=sub_eval_list,
-                                # sub_induced_list=sub_induced_list,
-                                # sym_struct_list=sym_struct_list
+                                symmetry=self.parameters['symmetry'],
+                                sub=sub,
+                                sub_eval_list=sub_eval_list,
+                                sub_induced_list=sub_induced_list,
+                                sym_struct_list=sym_struct_list
                                 ),
                  name='ComputeWakeTotalVel')            
         for i in range(len(surface_names)):
@@ -517,7 +517,11 @@ class ProfileOPModel4(csdl.Model):
             ode_surface_shapes=ode_surface_shapes,
             delta_t=delta_t,
             nt=nt,
-            symmetry=self.parameters['symmetry']
+            symmetry=self.parameters['symmetry'],
+            sym_struct_list=sym_struct_list,
+            sub=sub,
+            sub_eval_list=sub_eval_list,
+            sub_induced_list=sub_induced_list
         )
         promotions = gen_promotions_list(surface_names, surface_shapes)
         self.add(submodel, name='po_submodel', promotes=promotions)
@@ -581,6 +585,10 @@ class POSubmodel(csdl.Model):
             delta_t=delta_t,
             problem_type='prescribed_wake',
             eps=4e-5,
+            sub=sub,
+            sub_eval_list=sub_eval_list,
+            sub_induced_list=sub_induced_list,
+            sym_struct_list=sym_struct_list,
             symmetry=self.parameters['symmetry'],
         )
         self.add(submodel, name='EvalPtsVel')

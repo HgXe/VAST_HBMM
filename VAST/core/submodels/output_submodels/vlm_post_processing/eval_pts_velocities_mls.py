@@ -12,6 +12,8 @@ from VAST.core.submodels.aerodynamic_submodels.biot_savart_vc_comp import BiotSa
 # from VAST.core.submodels.aerodynamic_submodels.biot_savart_jax import BiotSavartComp
 from VAST.core.submodels.aerodynamic_submodels.induced_velocity_comp import InducedVelocity
 
+from VAST.utils.symmetry_sub_functions import generate_symmetry_groups, adjust_biot_savart_inputs_for_symmetry, modify_biot_savart_interactions
+
 class EvalPtsVel(Model):
     """
     Compute various geometric properties for VLM analysis.
@@ -139,6 +141,131 @@ class EvalPtsVel(Model):
         # total induced vel
         eval_induced_velocities_col_names = [x + '_eval_pts_induced_vel_col' for x in eval_pts_names]
 
+        eval_pt_names_expanded = []
+        eval_pt_shapes_expanded = []
+        bdnwake_coords_names_expanded = []
+        bdnwake_coords_shapes_expanded = []
+        output_names_expanded = []
+        full_aic_name = 'fw_force_eval_bdnwake' # free wake at eval points for bdn+wake points for force evaluation in post-processing
+        for i in range(len(eval_pts_names)):
+            for j in range(len(wake_vortex_pts_shapes)):
+                eval_pt_names_expanded.append(eval_pts_names[i])
+                eval_pt_shapes_expanded.append(eval_pts_shapes[i])
+                bdnwake_coords_names_expanded.append(bdnwake_coords_names[j])
+                bdnwake_coords_shapes_expanded.append(bdnwake_shapes[j])
+                # out_name = full_aic_name + eval_pts_names[i] + bdnwake_coords_names[j] + '_out'
+                out_name = full_aic_name  +'_'+ str(i) +'_'+ str(j)
+                output_names_expanded.append(out_name)
+                # [eval_pts_names[i] + x + '_out' for x in bdnwake_coords_names]
+
+        # region SETTING UP SYMMETRY
+        symmetry_structure = False
+        aic_symmetry_dict = False
+        if self.parameters['symmetry'] and sym_struct_list is not None:
+            symmetry_structure = True
+            symmetry_outputs = generate_symmetry_groups(
+                sym_struct_list,
+                eval_pts_names,
+                full_aic_name
+            )
+            interaction_groups_dict = symmetry_outputs[0]
+            aic_names_dict = symmetry_outputs[1]
+            aic_names_list = symmetry_outputs[2]
+        # endregion
+
+        if sub:
+            eval_pt_names_expanded_sub, eval_pt_shapes_expanded_sub, bdnwake_coords_names_expanded_sub, bdnwake_coords_expanded_shapes_sub, output_names_expanded_sub = modify_biot_savart_interactions(
+                sub_eval_list, sub_induced_list, eval_pts_names, eval_pts_shapes, bdnwake_coords_names, bdnwake_shapes, full_aic_name
+            )
+
+            if symmetry_structure == True: # NEED TO ADJUST INPUTS FOR THE ABOVE LISTS
+                1
+                sym_data = adjust_biot_savart_inputs_for_symmetry(
+                    eval_pt_names_expanded_sub, 
+                    eval_pt_shapes_expanded_sub, 
+                    bdnwake_coords_names_expanded_sub, 
+                    bdnwake_coords_expanded_shapes_sub,
+                    output_names_expanded_sub, 
+                    aic_names_dict, 
+                )
+                
+                eval_pt_names_expanded_sub = sym_data[0] 
+                eval_pt_shapes_expanded_sub = sym_data[1]
+                bdnwake_coords_names_expanded_sub = sym_data[2]
+                bdnwake_coords_expanded_shapes_sub = sym_data[3]
+                output_names_expanded_sub = sym_data[4]
+
+                aic_symmetry_dict = aic_names_dict
+
+            self.add(BiotSavartComp(
+                eval_pt_names=eval_pt_names_expanded_sub,
+                eval_pt_shapes=eval_pt_shapes_expanded_sub,
+                vortex_coords_names=bdnwake_coords_names_expanded_sub,
+                vortex_coords_shapes=bdnwake_coords_expanded_shapes_sub,
+                output_names=output_names_expanded_sub,
+                circulation_names=circulation_names, # not used, doesn't matter here
+                vc=True,
+                eps=5e-2,
+                symmetry=self.parameters['symmetry'],
+                aic_symmetry_dict=aic_symmetry_dict
+            ),
+            name='force_eval_pts_aics')
+            # print('==== eval_pts_names')
+            # print(eval_pt_names_expanded_sub)
+            # print('==== eval_pt_shape')
+            # print(eval_pt_shapes_expanded_sub)
+            # print('==== bdnwake_coords_names_expanded_sub')
+            # print(bdnwake_coords_names_expanded_sub)
+            # print('==== bdnwake_coords_expanded_shapes_sub')
+            # print(bdnwake_coords_expanded_shapes_sub)
+            # print('==== output_names_expanded_sub')
+            # print(output_names_expanded_sub)
+            # exit()
+
+        else:
+            if self.parameters['symmetry'] and sym_struct_list is not None:
+                sym_data = adjust_biot_savart_inputs_for_symmetry(
+                    eval_pt_names_expanded, 
+                    eval_pt_shapes_expanded, 
+                    bdnwake_coords_names_expanded, 
+                    bdnwake_coords_shapes_expanded,
+                    output_names_expanded, 
+                    aic_names_dict, 
+                )
+                
+                eval_pt_names_expanded_sub = sym_data[0] 
+                eval_pt_shapes_expanded_sub = sym_data[1]
+                bdnwake_coords_names_expanded_sub = sym_data[2]
+                bdnwake_coords_shapes_expanded_sub = sym_data[3]
+                output_names_expanded_sub = sym_data[4]
+
+                aic_symmetry_dict = aic_names_dict
+
+                m = BiotSavartComp(
+                    eval_pt_names=eval_pt_names_expanded_sub,
+                    eval_pt_shapes=eval_pt_shapes_expanded_sub,
+                    vortex_coords_names=bdnwake_coords_names_expanded_sub,
+                    vortex_coords_shapes=bdnwake_coords_shapes_expanded_sub,
+                    output_names=output_names_expanded_sub,
+                    vc=True,
+                    symmetry=self.parameters['symmetry'],
+                    aic_symmetry_dict=aic_symmetry_dict
+                )
+                self.add(m, name='force_eval_pts_aics')
+
+
+            else:
+                m = BiotSavartComp(
+                    eval_pt_names=eval_pt_names_expanded,
+                    eval_pt_shapes=eval_pt_shapes_expanded,
+                    vortex_coords_names=bdnwake_coords_names_expanded,
+                    vortex_coords_shapes=bdnwake_coords_shapes_expanded,
+                    output_names=output_names_expanded,
+                    vc=True,
+                    symmetry=self.parameters['symmetry'],
+                )
+                self.add(m, name='force_eval_pts_aics')       
+
         for i in range(len(eval_pts_names)):
             eval_vel_shape = eval_vel_shapes[i]
 
@@ -150,9 +277,10 @@ class EvalPtsVel(Model):
             eval_pts_name_repeat = [eval_pts_names[i]
                                     ] * len(bdnwake_coords_names)
 
-            output_names = [
-                eval_pts_names[i] + x + '_out' for x in bdnwake_coords_names
-            ]
+            # output_names = [
+            #     eval_pts_names[i] + x + '_out' for x in bdnwake_coords_names
+            # ]
+            output_names = [full_aic_name  +'_'+ str(i) +'_'+ str(j) for j in range(len(bdnwake_coords_names))]
             induced_vel_bdnwake_names = [
                 eval_pts_names[i] + x + '_induced_vel'
                 for x in bdnwake_coords_names
@@ -163,20 +291,20 @@ class EvalPtsVel(Model):
             # of each vortex ring, which cases r1_norm*r2_norm=-dot(r1,r2), making the denominator to zeros
             # this is fixed by finding the zeros and adding a small number to the denominator,
             # this is more acurate than adding a pertubation to every line vortex
-            self.add(BiotSavartComp(
-                eval_pt_names=eval_pts_name_repeat,
-                vortex_coords_names=bdnwake_coords_names,
-                eval_pt_shapes=[eval_pts_shapes[i]] *
-                len(bdnwake_coords_names),
-                vortex_coords_shapes=bdnwake_shapes,
-                output_names=output_names,
-                circulation_names=circulation_names,
-                vc=True,
-                eps=self.parameters['eps'],
-                # symmetry=self.parameters['symmetry'],
-                # aic_symmetry_dict=aic_symmetry_dict
-            ),
-            name='eval_pts_aics' + str(i))
+            # self.add(BiotSavartComp(
+            #     eval_pt_names=eval_pts_name_repeat,
+            #     vortex_coords_names=bdnwake_coords_names,
+            #     eval_pt_shapes=[eval_pts_shapes[i]] *
+            #     len(bdnwake_coords_names),
+            #     vortex_coords_shapes=bdnwake_shapes,
+            #     output_names=output_names,
+            #     circulation_names=circulation_names,
+            #     vc=True,
+            #     eps=self.parameters['eps'],
+            #     # symmetry=self.parameters['symmetry'],
+            #     # aic_symmetry_dict=aic_symmetry_dict
+            # ),
+            # name='eval_pts_aics' + str(i))
 
             for j in range(len(bdnwake_coords_names)):
                 aic = self.declare_variable(output_names[j],

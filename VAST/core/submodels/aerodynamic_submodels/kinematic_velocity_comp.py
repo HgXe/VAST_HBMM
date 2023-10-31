@@ -42,9 +42,9 @@ class KinematicVelocityComp(csdl.Model):
 
         frame_vel = self.declare_variable('frame_vel', shape=(num_nodes, 3))
 
-        p = self.declare_variable('p', shape=(num_nodes, 1))
-        q = self.declare_variable('q', shape=(num_nodes, 1))
-        r = self.declare_variable('r', shape=(num_nodes, 1))
+        p = self.declare_variable('p', shape=(num_nodes, 1), val=0)
+        q = self.declare_variable('q', shape=(num_nodes, 1), val=0)
+        r = self.declare_variable('r', shape=(num_nodes, 1), val=0)
 
         ang_vel = self.create_output('ang_vel', shape=(num_nodes, 3))
         ang_vel[:, 0] = p

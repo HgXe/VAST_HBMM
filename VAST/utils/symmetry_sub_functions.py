@@ -247,13 +247,16 @@ def adjust_biot_savart_inputs_for_symmetry(eval_pt_names, eval_pt_shapes, vortex
     vortex_coords_names_new = []
     vortex_coords_shapes_new = []
     output_names_new = []
+    print(aic_names_dict)
     for key in aic_names_dict:
-        name_ind = output_names.index(key)
-        eval_pt_names_new.append(eval_pt_names[name_ind])
-        eval_pt_shapes_new.append(eval_pt_shapes[name_ind])
-        vortex_coords_names_new.append(vortex_coords_names[name_ind])
-        vortex_coords_shapes_new.append(vortex_coords_shapes[name_ind])
-        output_names_new.append(output_names[name_ind])
+        if key in output_names:
+            # print(key)
+            name_ind = output_names.index(key)
+            eval_pt_names_new.append(eval_pt_names[name_ind])
+            eval_pt_shapes_new.append(eval_pt_shapes[name_ind])
+            vortex_coords_names_new.append(vortex_coords_names[name_ind])
+            vortex_coords_shapes_new.append(vortex_coords_shapes[name_ind])
+            output_names_new.append(output_names[name_ind])
     
     return eval_pt_names_new, eval_pt_shapes_new, vortex_coords_names_new, vortex_coords_shapes_new, output_names_new
 

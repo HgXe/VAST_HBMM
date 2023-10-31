@@ -359,20 +359,20 @@ class ProfileOPModel4(csdl.Model):
 
 
         # 1.2.1 declare the ode parameter AcStates for the current time step
-        u = self.declare_variable('u',  shape=(n,1))
-        v = self.declare_variable('v',  shape=(n,1))
-        w = self.declare_variable('w',  shape=(n,1))
-        p = self.declare_variable('p',  shape=(n,1))
-        q = self.declare_variable('q',  shape=(n,1))
-        r = self.declare_variable('r',  shape=(n,1))
-        theta = self.declare_variable('theta',  shape=(n,1))
-        psi = self.declare_variable('psi',  shape=(n,1))
-        x = self.declare_variable('x',  shape=(n,1))
-        y = self.declare_variable('y',  shape=(n,1))
-        z = self.declare_variable('z',  shape=(n,1))
-        phiw = self.declare_variable('phiw',  shape=(n,1))
-        gamma = self.declare_variable('gamma',  shape=(n,1))
-        psiw = self.declare_variable('psiw',  shape=(n,1))
+        u = self.create_input('u',  shape=(n,1))
+        v = self.create_input('v',  shape=(n,1))
+        w = self.create_input('w',  shape=(n,1))
+        p = self.create_input('p',  shape=(n,1))
+        q = self.create_input('q',  shape=(n,1))
+        r = self.create_input('r',  shape=(n,1))
+        theta = self.create_input('theta',  shape=(n,1))
+        psi = self.create_input('psi',  shape=(n,1))
+        x = self.create_input('x',  shape=(n,1))
+        y = self.create_input('y',  shape=(n,1))
+        z = self.create_input('z',  shape=(n,1))
+        phiw = self.create_input('phiw',  shape=(n,1))
+        gamma = self.create_input('gamma',  shape=(n,1))
+        psiw = self.create_input('psiw',  shape=(n,1))
 
         #  1.2.2 from the AcStates, compute 5 preprocessing outputs
         # frame_vel, alpha, v_inf_sq, beta, rho

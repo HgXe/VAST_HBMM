@@ -105,7 +105,10 @@ class ComputeWakeTotalVel(Model):
 
         for i in range(len(surface_names)):
             wake_kinematic_vel = self.declare_variable(wake_kinematic_vel_names[i],shape=wake_vortex_pts_shapes[i])
-            wake_induced_vel = self.declare_variable(eval_induced_velocities_names[i],shape=wake_vortex_pts_shapes[i], val=0.)
+            if problem_type == 'free_wake':
+                wake_induced_vel = self.declare_variable(eval_induced_velocities_names[i],shape=wake_vortex_pts_shapes[i], val=0.)
+            else:
+                wake_induced_vel = 0.
             # NOTE: wake_induced_vel can be non-zero only if problem_type == 'free_wake'
 
             # print('vars-------------')

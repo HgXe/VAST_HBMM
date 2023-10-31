@@ -67,7 +67,7 @@ class InducedVelocity(Model):
             circulations_shape = circulations_shapes[i]
 
             # declare_inputs
-            aic = self.declare_variable(aic_name, shape=aic_shape)
+            aic = self.declare_variable(aic_name, shape=aic_shape, val=0.)
             circulations = self.declare_variable(circulations_name,
                                                  shape=circulations_shape)
             aic_reshaped = csdl.reshape(aic,

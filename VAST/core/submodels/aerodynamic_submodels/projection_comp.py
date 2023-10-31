@@ -70,8 +70,8 @@ class Projection(csdl.Model):
 
                 # declare_inputs
                 input_vel = self.declare_variable(input_vel_name,
-                                                  shape=input_vel_shape)
-
+                                                  shape=input_vel_shape,
+                                                  val=0.)
                 normals = self.declare_variable(normal_name,
                                                 shape=normal_shape)
                 # print('normals shape', normals.shape)
@@ -125,8 +125,9 @@ class Projection(csdl.Model):
 
                 # declare_inputs
                 input_vel = self.declare_variable(input_vel_name,
-                                                  shape=input_vel_shape)
-
+                                                  shape=input_vel_shape,
+                                                  val=0.)
+                
                 normals = self.declare_variable(normal_name,
                                                 shape=normal_shape)
 

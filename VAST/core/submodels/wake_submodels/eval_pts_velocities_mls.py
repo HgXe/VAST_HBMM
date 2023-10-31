@@ -259,7 +259,7 @@ class EvalPtsVel(Model):
             # out_name = full_aic_name  +'_'+ str(i) +'_'+ str(j)
             # output_names_expanded.append(out_name)
             output_names = [full_aic_name  +'_'+ str(i) +'_'+ str(j) for j in range(len(bdnwake_coords_names))]
-
+            print(output_names)
             induced_vel_bdnwake_names = [
                 eval_pts_names[i] + x + '_induced_vel'
                 for x in bdnwake_coords_names
@@ -280,7 +280,8 @@ class EvalPtsVel(Model):
 
             for j in range(len(bdnwake_coords_names)):
                 aic = self.declare_variable(output_names[j],
-                                            shape=(aic_shapes[j]))
+                                            shape=(aic_shapes[j]),
+                                            val=0.)
             # print('eval pts vel mls aic_shapes', aic_shapes)
 
             self.add(InducedVelocity(
@@ -311,4 +312,5 @@ class EvalPtsVel(Model):
             self.register_output(
                 name=eval_induced_velocities_names[i],
                 var=csdl.reshape(eval_induced_velocity,(num_nodes,n_wake_pts_chord,ny,3)))
+        # exit()
                         

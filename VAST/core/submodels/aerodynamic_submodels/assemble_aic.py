@@ -412,6 +412,11 @@ class AssembleAic(Model):
                 output_names_sub = sym_data[4]
 
                 aic_symmetry_dict = aic_names_dict
+                # print(eval_pt_names_sub)
+                # print(vortex_coords_names_sub)
+                # print(output_names_sub)
+                # print(aic_symmetry_dict)
+                # exit()
             '''
             THE GOAL WITH THE SYMMETRY:
                 - reduce the length of names and shapes to the dictionary keys in the symmetry data

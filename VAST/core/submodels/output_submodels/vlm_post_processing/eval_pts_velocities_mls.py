@@ -308,7 +308,8 @@ class EvalPtsVel(Model):
 
             for j in range(len(bdnwake_coords_names)):
                 aic = self.declare_variable(output_names[j],
-                                            shape=(aic_shapes[j]))
+                                            shape=(aic_shapes[j]),
+                                            val=0.)
 
             self.add(InducedVelocity(
                 aic_names=output_names,

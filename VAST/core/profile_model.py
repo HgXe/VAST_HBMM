@@ -398,7 +398,6 @@ class ProfileOPModel4(csdl.Model):
                  name='MeshPreprocessing_comp')
 
         for surface_name in surface_names:
-            print(surface_name)
             if 'mirror' in surface_name:
                 pass
             elif 'wing' in surface_name:

@@ -974,9 +974,9 @@ class LiftDrag(csdl.Model):
                 delta_eval = nx_eval * ny_eval
 
                 bd_vec_surface = bd_vec[:, start:start + delta, :]
-                print('bd_vec shape', bd_vec.shape)
-                print('bd_vec_surface shape', bd_vec_surface.shape)
-                print('sprs shape', sprs[i].shape)
+                # print('bd_vec shape', bd_vec.shape)
+                # print('bd_vec_surface shape', bd_vec_surface.shape)
+                # print('sprs shape', sprs[i].shape)
 
                 bd_vec_eval = csdl.sparsematmat(bd_vec_surface, sprs[i])
                 # sina = csdl.expand(csdl.sin(alpha), (num_nodes, delta_eval, 1),

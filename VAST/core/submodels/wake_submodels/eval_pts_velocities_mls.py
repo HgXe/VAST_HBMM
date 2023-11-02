@@ -259,7 +259,7 @@ class EvalPtsVel(Model):
             # out_name = full_aic_name  +'_'+ str(i) +'_'+ str(j)
             # output_names_expanded.append(out_name)
             output_names = [full_aic_name  +'_'+ str(i) +'_'+ str(j) for j in range(len(bdnwake_coords_names))]
-            print(output_names)
+            # print(output_names)
             induced_vel_bdnwake_names = [
                 eval_pts_names[i] + x + '_induced_vel'
                 for x in bdnwake_coords_names

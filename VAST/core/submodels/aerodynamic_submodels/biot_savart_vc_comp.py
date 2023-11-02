@@ -6,6 +6,7 @@ from VAST.utils.custom_find_zeros_replace_eps import ReplaceZeros
 # from VAST.utils.custom_expands import ExpandIjkIjlk
 # from VAST.utils.custom_expands import ExpandIjkIljk
 from scipy.sparse import csc_array
+from scipy.sparse import eye as sparse_eye
 
 class BiotSavartComp(csdl.Model):
     """
@@ -145,7 +146,7 @@ class BiotSavartComp(csdl.Model):
                     # print(output_name)
                     for j, name in enumerate(symmetry_names):
                         axis = symmetry_axes[j]  
-
+                        # print(name)
                         # AIC_reflected = csdl.custom(AIC, op=AICReflection(in_name=AIC.name, eval_pt_shape=eval_pt_shape, vortex_coords_shape=vortex_coords_shape, out_name=output_name, axis=axis, ref_axis=ref_axis))
                         plot=False
                         # if name == 'aic_bd_2_0':
@@ -235,7 +236,7 @@ class BiotSavartComp(csdl.Model):
             # num_expand = jnp.einsum('ij,l->ijl', num, jnp.ones(3))
             v_induced_line = num_expand * one_over_den
         else:
-            new_vc=True
+            new_vc=False
             if new_vc:
                 core_size = 0.05
                 dor_r1_r2 = csdl.sum(r_1*r_2,axes=(2,))
@@ -407,6 +408,43 @@ class AICReflection(csdl.CustomExplicitOperation):
     def compute_derivatives(self, inputs, derivatives):
         derivatives[self.parameters['out_name'], self.parameters['in_name']] = self.system_matrix # can be dense or sparse
 
+    def generate_permutation_matrix_new(self, vector_length, axis):
+        asdf = int(vector_length/3)
+        # size of matrix for one dimension (x, y, or z) = a*b*c*d
+        a = self.eval_pt_shape[1] # num chordwise collocation evaluation points
+        b = self.eval_pt_shape[2] # num spanwise collocation evaluation points
+        c = self.vortex_coords_shape[1]-1# num chordwise vortex coord points
+        d = self.vortex_coords_shape[2]-1 # num spanwise vortex coord points
+        # rows will not change
+        # columns will be adjusted to maintain symmetry
+        inner_cols_orig = np.arange(b*c*d,0,-1) - 1 # decreasing from (b*c*d-1) to 0
+        inner_cols = np.zeros_like(inner_cols_orig).tolist() # adding elements to this one
+
+        for i in range(b):
+            vals = inner_cols_orig[(c*d)*i:(c*d)*(i+1)]
+            for j in range(c):
+                inner_cols[((c*d)*i + d*j):((c*d)*i + d*(j+1))] = vals[((d*(c-j-1))):(d*(c-j-1)+d)] # shifting first half back
+
+        cols = inner_cols.copy()
+        for i in range(a-1):
+            shifted_cols = (np.array(inner_cols) + (i+1)*b*c*d).tolist()
+            cols.extend(shifted_cols)
+
+        num_per_axis = a*b*c*d
+        for i in range(2):
+            shifted_cols = (np.array(cols[:num_per_axis]) + (i+1)*num_per_axis).tolist()
+            cols.extend(shifted_cols)
+
+        cols = np.array(cols) # converting columns back to numpy array
+        rows = np.arange(3*a*b*c*d)
+        data = np.ones_like(cols)
+        if axis == 'y':
+            data[asdf:2*asdf] *= -1 # only on y
+        else: # 'yz
+            data[:asdf] *= -1 # only on x
+        sparse_system_matrix = csc_array((data, (rows, cols)))
+        return sparse_system_matrix
+
     def generate_permutation_matrix(self, vector_length, axis):
         asdf = int(vector_length/3)
         system_matrix = np.zeros((vector_length, vector_length))
@@ -440,15 +478,24 @@ class AICReflection(csdl.CustomExplicitOperation):
     def create_system_matrix(self, axis, ref_axis, vector_length):
         asdf = int(vector_length/3)
         if ref_axis == 'self':
-            system_matrix = np.eye(vector_length)
+            # sparse_system_matrix = csc_array(sparse_eye(vector_length))
+            rows, cols = np.arange(vector_length), np.arange(vector_length)
+            data = np.ones((vector_length, ))
             if 'z' in axis:
-                system_matrix[:2*asdf,:2*asdf] *= -1
+                data[:2*asdf]  *= -1
+            sparse_system_matrix = csc_array((data, (rows, cols)))
         elif ref_axis == 'plane':
             if axis == 'z':
-                system_matrix = np.eye(vector_length)
-                system_matrix[:2*asdf,:2*asdf] *= -1
+                rows, cols = np.arange(vector_length), np.arange(vector_length)
+                data = np.ones((vector_length, ))
+                if 'z' in axis:
+                    data[:2*asdf]  *= -1
+                sparse_system_matrix = csc_array((data, (rows, cols)))
             else:
-                system_matrix = self.generate_permutation_matrix(vector_length, axis)
+                # system_matrix = self.generate_permutation_matrix(vector_length, axis)
+                # sparse_system_matrix = csc_array(system_matrix)
+                # del system_matrix
+                sparse_system_matrix = self.generate_permutation_matrix_new(vector_length, axis)
                 # system_matrix = np.zeros((vector_length, vector_length))
                     
                 # inner_inner_inner_sub_matrix = np.flipud(np.eye(self.vortex_coords_shape[2]-1)) # Identity-turned anti-diagonal matrix
@@ -479,10 +526,16 @@ class AICReflection(csdl.CustomExplicitOperation):
                     
         elif ref_axis == 'z':
             if axis == 'z':
-                system_matrix = np.eye(vector_length)
-                system_matrix[:2*asdf,:2*asdf] *= -1
+                rows, cols = np.arange(vector_length), np.arange(vector_length)
+                data = np.ones((vector_length, ))
+                if 'z' in axis:
+                    data[:2*asdf]  *= -1
+                sparse_system_matrix = csc_array((data, (rows, cols)))
             else:
-                system_matrix = self.generate_permutation_matrix(vector_length, axis)
+                # system_matrix = self.generate_permutation_matrix(vector_length, axis)
+                # sparse_system_matrix = csc_array(system_matrix)
+                # del system_matrix
+                sparse_system_matrix = self.generate_permutation_matrix_new(vector_length, axis)
                 # system_matrix = np.zeros((vector_length, vector_length))
                     
                 # inner_inner_inner_sub_matrix = np.flipud(np.eye(self.vortex_coords_shape[2]-1)) # Identity-turned anti-diagonal matrix
@@ -513,10 +566,16 @@ class AICReflection(csdl.CustomExplicitOperation):
 
         elif 'y' in ref_axis:
             if axis == 'z':
-                system_matrix = np.eye(vector_length)
-                system_matrix[:2*asdf,:2*asdf] *= -1
+                rows, cols = np.arange(vector_length), np.arange(vector_length)
+                data = np.ones((vector_length, ))
+                if 'z' in axis:
+                    data[:2*asdf]  *= -1
+                sparse_system_matrix = csc_array((data, (rows, cols)))
             else:
-                system_matrix = self.generate_permutation_matrix(vector_length, axis)
+                # system_matrix = self.generate_permutation_matrix(vector_length, axis)
+                # sparse_system_matrix = csc_array(system_matrix)
+                # del system_matrix
+                sparse_system_matrix = self.generate_permutation_matrix_new(vector_length, axis)
                 # system_matrix = np.zeros((vector_length, vector_length))
                 
                 # inner_inner_inner_sub_matrix = np.flipud(np.eye(self.vortex_coords_shape[2]-1)) # Identity-turned anti-diagonal matrix
@@ -552,8 +611,8 @@ class AICReflection(csdl.CustomExplicitOperation):
                 #     else: # 'yz
                 #         system_matrix[:asdf, :asdf] *= -1. # only on x
         
-        sparse_system_matrix = csc_array(system_matrix)
-        del system_matrix
+        # sparse_system_matrix = csc_array(system_matrix)
+        # del system_matrix
         # return system_matrix
         return sparse_system_matrix
 

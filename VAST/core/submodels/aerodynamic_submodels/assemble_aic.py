@@ -6,6 +6,8 @@ import numpy as np
 from VAST.core.submodels.aerodynamic_submodels.biot_savart_vc_comp import BiotSavartComp
 # from VAST.core.submodels.aerodynamic_submodels.biot_savart_jax import BiotSavartComp
 
+from VAST.utils.symmetry_sub_functions import generate_symmetry_groups, adjust_biot_savart_inputs_for_symmetry, modify_biot_savart_interactions
+
 class AssembleAic(Model):
     """
     Compute various geometric properties for VLM analysis.
@@ -286,7 +288,7 @@ class AssembleAic(Model):
             aic_names_list.extend(dict_list)
         return interaction_groups_dict, aic_names_dict, aic_names_list
     
-    def _adjust_biot_savart_inputs_for_symmetry(self, eval_pt_names, eval_pt_shapes, vortex_coords_names, vortex_coords_shapes, output_names, interaction_groups_dict, aic_names_dict, aic_names_list):
+    def _adjust_biot_savart_inputs_for_symmetry(self, eval_pt_names, eval_pt_shapes, vortex_coords_names, vortex_coords_shapes, output_names, aic_names_dict):
         eval_pt_names_new = []
         eval_pt_shapes_new = []
         vortex_coords_names_new = []
@@ -299,12 +301,9 @@ class AssembleAic(Model):
             vortex_coords_names_new.append(vortex_coords_names[name_ind])
             vortex_coords_shapes_new.append(vortex_coords_shapes[name_ind])
             output_names_new.append(output_names[name_ind])
-
-        1
         
         return eval_pt_names_new, eval_pt_shapes_new, vortex_coords_names_new, vortex_coords_shapes_new, output_names_new
 
-        
     def define(self):
         # add_input
         bd_coll_pts_names = self.parameters['bd_coll_pts_names']
@@ -365,7 +364,8 @@ class AssembleAic(Model):
         aic_symmetry_dict = False
         if self.parameters['symmetry'] and sym_struct_list is not None:
             symmetry_structure = True
-            symmetry_outputs = self._generate_symmetry_groups(
+            # symmetry_outputs = self._generate_symmetry_groups(
+            symmetry_outputs = generate_symmetry_groups(
                 sym_struct_list,
                 bd_coll_pts_names,
                 full_aic_name
@@ -376,27 +376,34 @@ class AssembleAic(Model):
 
         if sub:
 
-            eval_pt_names_sub = []
-            vortex_coords_names_sub = []
-            eval_pt_shapes_sub = []
-            vortex_coords_shapes_sub = []
-            output_names_sub = []
-            # sub_eval_list = [0, 1]
-            # sub_induced_list = [0, 1]
-            # aic_shape_row_sub = aic_shape_col = 0
+            eval_pt_names_sub, eval_pt_shapes_sub, vortex_coords_names_sub, vortex_coords_shapes_sub, output_names_sub = modify_biot_savart_interactions(
+                sub_eval_list, sub_induced_list, bd_coll_pts_names, bd_coll_pts_shapes, wake_vortex_pts_names, wake_vortex_pts_shapes, full_aic_name
+            )
 
-            for i in range(len(sub_eval_list)):
-                eval_pt_names_sub.append(bd_coll_pts_names[sub_eval_list[i]])
-                eval_pt_shapes_sub.append(bd_coll_pts_shapes[sub_eval_list[i]])
-                vortex_coords_names_sub.append(wake_vortex_pts_names[sub_induced_list[i]])
-                vortex_coords_shapes_sub.append(wake_vortex_pts_shapes[sub_induced_list[i]])
-                output_name_sub = full_aic_name  +'_'+ str(sub_eval_list[i]) +'_'+ str(sub_induced_list[i])
-                output_names_sub.append(output_name_sub)
+            if False:
+                eval_pt_names_sub = []
+                vortex_coords_names_sub = []
+                eval_pt_shapes_sub = []
+                vortex_coords_shapes_sub = []
+                output_names_sub = []
+                # sub_eval_list = [0, 1]
+                # sub_induced_list = [0, 1]
+                # aic_shape_row_sub = aic_shape_col = 0
+
+                for i in range(len(sub_eval_list)):
+                    eval_pt_names_sub.append(bd_coll_pts_names[sub_eval_list[i]])
+                    eval_pt_shapes_sub.append(bd_coll_pts_shapes[sub_eval_list[i]])
+                    vortex_coords_names_sub.append(wake_vortex_pts_names[sub_induced_list[i]])
+                    vortex_coords_shapes_sub.append(wake_vortex_pts_shapes[sub_induced_list[i]])
+                    output_name_sub = full_aic_name  +'_'+ str(sub_eval_list[i]) +'_'+ str(sub_induced_list[i])
+                    output_names_sub.append(output_name_sub)
             
             if symmetry_structure == True: # NEED TO ADJUST INPUTS FOR THE ABOVE LISTS
                 1
-                sym_data = self._adjust_biot_savart_inputs_for_symmetry(eval_pt_names_sub, eval_pt_shapes_sub, vortex_coords_names_sub, vortex_coords_shapes_sub,
-                                                             output_names_sub, interaction_groups_dict, aic_names_dict, aic_names_list)
+                # sym_data = self._adjust_biot_savart_inputs_for_symmetry(eval_pt_names_sub, eval_pt_shapes_sub, vortex_coords_names_sub, vortex_coords_shapes_sub,
+                                                                        
+                sym_data = adjust_biot_savart_inputs_for_symmetry(eval_pt_names_sub, eval_pt_shapes_sub, vortex_coords_names_sub, vortex_coords_shapes_sub,
+                                                             output_names_sub, aic_names_dict)
                 
                 eval_pt_names_sub = sym_data[0] 
                 eval_pt_shapes_sub = sym_data[1]
@@ -405,6 +412,11 @@ class AssembleAic(Model):
                 output_names_sub = sym_data[4]
 
                 aic_symmetry_dict = aic_names_dict
+                # print(eval_pt_names_sub)
+                # print(vortex_coords_names_sub)
+                # print(output_names_sub)
+                # print(aic_symmetry_dict)
+                # exit()
             '''
             THE GOAL WITH THE SYMMETRY:
                 - reduce the length of names and shapes to the dictionary keys in the symmetry data
@@ -427,8 +439,8 @@ class AssembleAic(Model):
 
         else:
             if self.parameters['symmetry'] and sym_struct_list is not None:
-                sym_data = self._adjust_biot_savart_inputs_for_symmetry(eval_pt_names, eval_pt_shapes, vortex_coords_names, vortex_coords_shapes,
-                                                             output_names, interaction_groups_dict, aic_names_dict, aic_names_list)
+                sym_data = adjust_biot_savart_inputs_for_symmetry(eval_pt_names, eval_pt_shapes, vortex_coords_names, vortex_coords_shapes,
+                                                             output_names, aic_names_dict)
                 
                 eval_pt_names_sub = sym_data[0] 
                 eval_pt_shapes_sub = sym_data[1]

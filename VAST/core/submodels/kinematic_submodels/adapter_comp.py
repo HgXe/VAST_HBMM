@@ -79,26 +79,25 @@ class AdapterComp(ModuleCSDL):
 
         num_nodes = surface_shapes[0][0]
 
-        u = self.register_module_input('u', shape=(num_nodes, 1))
-        v = self.register_module_input('v', shape=(num_nodes, 1))
-        w = self.register_module_input('w', shape=(num_nodes, 1))
+        u = self.register_module_input('u', shape=(num_nodes, 1), val=0)
+        v = self.register_module_input('v', shape=(num_nodes, 1), val=0)
+        w = self.register_module_input('w', shape=(num_nodes, 1), val=0)
         # wing_incidence_angle = csdl.expand(self.register_module_input('wing_incidence', shape=(1, )), shape=(num_nodes, 1))
 
-        p = self.register_module_input('p', shape=(num_nodes, 1))
-        q = self.register_module_input('q', shape=(num_nodes, 1))
-        r = self.register_module_input('r', shape=(num_nodes, 1))
+        p = self.register_module_input('p', shape=(num_nodes, 1), val=0)
+        q = self.register_module_input('q', shape=(num_nodes, 1), val=0)
+        r = self.register_module_input('r', shape=(num_nodes, 1), val=0)
 
         # phi = self.register_module_input('phi', shape=(num_nodes, 1))
-        theta = self.register_module_input('theta', shape=(num_nodes, 1))
-        psi = self.register_module_input('psi', shape=(num_nodes, 1))
-        
+        theta = self.register_module_input('theta', shape=(num_nodes, 1), val=0)
+        psi = self.register_module_input('psi', shape=(num_nodes, 1), val=0)
 
         # x = self.register_module_input('x', shape=(num_nodes, 1))
         # y = self.register_module_input('y', shape=(num_nodes, 1))
         # z = self.register_module_input('z', shape=(num_nodes, 1))
 
         # phiw = self.register_module_input('phiw', shape=(num_nodes, 1))
-        gamma = self.register_module_input('gamma', shape=(num_nodes, 1))
+        gamma = self.register_module_input('gamma', shape=(num_nodes, 1), val=0)
         psiw = self.declare_variable('psiw', shape=(num_nodes, 1), val=0)
 
         # self.print_var(u)

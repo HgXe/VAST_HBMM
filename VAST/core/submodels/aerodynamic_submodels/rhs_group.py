@@ -198,11 +198,11 @@ class RHS(Model):
             wake_vortex_pts_shapes=bd_vortex_shapes,
             full_aic_name='aic_bd',
             vc = False,
-            symmetry=self.parameters['symmetry'],
+            symmetry=self.parameters['symmetry'],# TURN OFF TO GET RID OF MAJOR INSTABILITY
             sub = sub,
             sub_eval_list = sub_eval_list,
             sub_induced_list = sub_induced_list,
-            sym_struct_list=sym_struct_list
+            sym_struct_list=sym_struct_list, # TURN OFF TO GET RID OF MAJOR INSTABILITY
             # delta_t=delta_t,  # one line of wake vortex for fix wake
         )
         self.add(m, name='AssembleAic_bd')

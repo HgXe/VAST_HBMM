@@ -257,6 +257,10 @@ class ThrustDrag(Model):
                 self.register_output(f'{surface_names[i]}_panel_forces_x', panel_forces_x[:, start:start + delta, :])
                 self.register_output(f'{surface_names[i]}_panel_forces_y', panel_forces_y[:, start:start + delta, :])
                 self.register_output(f'{surface_names[i]}_panel_forces_z', panel_forces_z[:, start:start + delta, :])
+
+                self.register_output(f'{surface_names[i]}_circulations', circulations[:, start:start + delta])
+                self.register_output(f'{surface_names[i]}_gamma_b', gamma_b[:, start:start + delta])
+
                 # cl_panel_surface = cl_panel[:, start:start + delta, :]
                 # cdi_panel_surface = cd_i_panel[:, start:start + delta, :]
                 traction_surfaces = traction_panel[:, start:start + delta, :]

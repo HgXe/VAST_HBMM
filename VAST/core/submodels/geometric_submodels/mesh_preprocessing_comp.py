@@ -161,6 +161,7 @@ class MeshPreprocessingComp(ModuleCSDL):
             #                                 bd_vtx_coords[:,1:, 1:, :])
 
             self.register_output(coll_pts_coords_name, coll_pts_coords)
+            # self.print_var(coll_pts_coords)
 
             ################################################################################
             # compute the output: 3. chords- I don't think VLM deal w/ unstrunctured mesh

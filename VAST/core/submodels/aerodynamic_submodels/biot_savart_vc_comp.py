@@ -207,8 +207,8 @@ class BiotSavartComp(csdl.Model):
         r1 = eval_pts_expand - p_1_expand
         self.register_output(r1.name + '_test_output', r1)
         # r1_norm = csdl.pnorm(r1, axis=(2,))
-        # r1_norm = csdl.sum(r1**2, axes=(2,))**0.5
-        r1_norm = csdl.sum(r1**2+1e-2, axes=(2,))**0.5 # TODO: make pnorm work
+        r1_norm = csdl.sum(r1**2, axes=(2,))**0.5
+        # r1_norm = csdl.sum(r1**2+1e-2, axes=(2,))**0.5 # TODO: make pnorm work
         # r1_sum = csdl.sum(r1**2, axes=(2,))
         # r1_norm = csdl.custom(r1_sum, op=PosSqrt(in_name=r1_sum.name, out_name=r1_sum.name + '_norm', shape=r1_sum.shape))
         return r1, r1_norm

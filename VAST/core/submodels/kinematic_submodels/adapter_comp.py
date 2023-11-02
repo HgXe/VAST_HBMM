@@ -91,6 +91,7 @@ class AdapterComp(ModuleCSDL):
         # phi = self.register_module_input('phi', shape=(num_nodes, 1))
         theta = self.register_module_input('theta', shape=(num_nodes, 1))
         psi = self.register_module_input('psi', shape=(num_nodes, 1))
+        
 
         # x = self.register_module_input('x', shape=(num_nodes, 1))
         # y = self.register_module_input('y', shape=(num_nodes, 1))
@@ -99,6 +100,14 @@ class AdapterComp(ModuleCSDL):
         # phiw = self.register_module_input('phiw', shape=(num_nodes, 1))
         gamma = self.register_module_input('gamma', shape=(num_nodes, 1))
         psiw = self.declare_variable('psiw', shape=(num_nodes, 1), val=0)
+
+        # self.print_var(u)
+        # self.print_var(v)
+        # self.print_var(w)
+        # self.print_var(theta)
+        # self.print_var(psi)
+        # self.print_var(psiw)
+        # self.print_var(gamma)
 
         # self.print_var(u)
 
@@ -138,6 +147,7 @@ class AdapterComp(ModuleCSDL):
 
             frame_vel[:, 2] = -v_inf * csdl.cos(beta) * csdl.sin(alpha)
         else:
+            exit(self.parameters['frame'])
             frame_vel = self.create_output('frame_vel', shape=(num_nodes, 3),val=0.)
 
             frame_vel[:, 0] = -v_inf #* csdl.cos(beta) * csdl.cos(alpha)

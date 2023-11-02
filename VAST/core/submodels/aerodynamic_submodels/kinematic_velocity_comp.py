@@ -75,12 +75,15 @@ class KinematicVelocityComp(csdl.Model):
                 indices='il->ijkl')
             rot_vel = csdl.reshape(csdl.cross(ang_vel_exp, r_vec, axis=3),
                                    out_shape)
+            # self.print_var(rot_vel)
             frame_vel_expand = csdl.expand(frame_vel,
                                            out_shape,
                                            indices='ij->ikj')
             # velocity of the colloction points due to the fish body deformation
             # need a nagtive sign here because the coll pts velocity is the velocity of the fish body, we convert to air velocity
             coll_vel = self.declare_variable(surface_name+'_coll_vel',val=np.zeros((num_nodes,num_pts_chord-1,num_pts_span-1,3)))
+            # self.print_var(coll_vel)
+            # self.print_var(frame_vel_expand)
 
             kinematic_vel = -(rot_vel + frame_vel_expand + csdl.reshape(coll_vel,new_shape=(num_nodes,(num_pts_chord-1)*(num_pts_span-1),3)))
             self.register_output(kinematic_vel_name, kinematic_vel)

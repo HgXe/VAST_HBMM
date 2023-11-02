@@ -384,9 +384,9 @@ class ProfileOPModel4(csdl.Model):
         )
         self.add(m, name='adapter_comp')
 
-
         # 1.1.2 from the declared surface mesh, compute 6 preprocessing outputs
         # surface_bd_vtx_coords,coll_pts,l_span,l_chord,s_panel,bd_vec_all
+        
         self.add(MeshPreprocessingComp(surface_names=surface_names,
                                        surface_shapes=ode_surface_shapes,
                                        eval_pts_location=0.25,
@@ -397,6 +397,18 @@ class ProfileOPModel4(csdl.Model):
                                        Ma=self.parameters['Ma'],),
                  name='MeshPreprocessing_comp')
 
+        for surface_name in surface_names:
+            print(surface_name)
+            if 'mirror' in surface_name:
+                pass
+            elif 'wing' in surface_name:
+                pass
+            else:
+                i = surface_names.index(surface_name)
+                nx = bd_vortex_shapes[i][0]
+                ny = bd_vortex_shapes[i][1]
+                rotor_mesh = self.declare_variable(f'{surface_name}_velocity', shape=(n, nx-1, ny-1, 3), val=0)
+                self.register_output(f'{surface_name}_coll_vel', rotor_mesh * 1)
 
         self.add(CombineGammaW(surface_names=surface_names, surface_shapes=ode_surface_shapes, n_wake_pts_chord=nt-1),
             name='combine_gamma_w')
@@ -620,6 +632,15 @@ def gen_profile_output_list(surface_names, surface_shapes):
     outputs.append(('bd_vec', (1,gamma_b_len,3)))
     outputs.append(('beta', (1,1)))
     outputs.append(('alpha', (1,1)))
+    # outputs.append(('u', (1,1)))
+    # outputs.append(('v', (1,1)))
+    # outputs.append(('w', (1,1)))
+    # outputs.append(('p', (1,1)))
+    # outputs.append(('q', (1,1)))
+    # outputs.append(('r', (1,1)))
+    # outputs.append(('psi', (1,1)))
+    # outputs.append(('psiw', (1,1)))
+    # outputs.append(('gamma', (1,1)))
     return outputs
 
 
@@ -662,6 +683,11 @@ def gen_promotions_list(surface_names, surface_shapes):
     outputs.append('bd_vec') # still needed
     outputs.append('beta') # still needed
     outputs.append('alpha') # still needed
+    # outputs.append('psi') # still needed
+    # outputs.append('psiw') # still needed
+    # outputs.append('v') # still needed
+    # outputs.append('u') # still needed
+    # outputs.append('w') # still needed
     return outputs
 
 

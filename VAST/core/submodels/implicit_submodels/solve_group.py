@@ -190,9 +190,6 @@ class SolveMatrix(Model):
                                             shape=(num_nodes, gamma_b_shape))
             b = model.declare_variable('b', shape=(num_nodes, gamma_b_shape))
             '''hardcode here to test function'''
-            # gamma_w_shape = (num_nodes, n_wake_pts_chord,)+ (sum((i[2] - 1) for i in bd_vortex_shapes),)
-            gamma_w_shape = (num_nodes, n_wake_pts_chord*sum((i[2] - 1) for i in bd_vortex_shapes),)
-            gamma_w = model.declare_variable('gamma_w',shape=gamma_w_shape)
 
             product = csdl.custom(aic_bd_proj,
                                     gamma_b,
@@ -201,17 +198,12 @@ class SolveMatrix(Model):
                                                         in_shape=(num_nodes, aic_shape_row, aic_shape_col),
                                                         out_name='product'))    
             
+            # gamma_w_shape = (num_nodes, n_wake_pts_chord,)+ (sum((i[2] - 1) for i in bd_vortex_shapes),)
             # gamma_w_reshaped = csdl.reshape(gamma_w,(num_nodes,gamma_w.shape[1]*gamma_w.shape[2]))
             # model.register_output('gamma_w_reshaped',gamma_w_reshaped)
-            # print('===')
-            # print(gamma_w_reshaped.shape)
-            # print('===')
-            # gamma_w_reshaped = self.create_output('gamma_w_reshaped', val=0., shape=(num_nodes, gamma_w.shape[1]*gamma_w.shape[2]))
-            # for i in 
-            # for j in range(len(surface_names)):
-            #     gamma_w_reshaped[:,]
+            gamma_w_shape = (num_nodes, n_wake_pts_chord*sum((i[2] - 1) for i in bd_vortex_shapes),)
+            gamma_w = model.declare_variable('gamma_w',shape=gamma_w_shape) # vectorized gamma_w
             
-
             product_w = csdl.custom(M,
                                     # gamma_w_reshaped,
                                     gamma_w,

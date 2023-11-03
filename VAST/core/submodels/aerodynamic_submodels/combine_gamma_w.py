@@ -51,15 +51,16 @@ class CombineGammaW(csdl.Model):
         #     start += delta
         # # exit()
 
+        # Vectorizing gamma_w
         surface_gamma_w_shapes =  [tuple((item[0], n_wake_pts_chord, item[2]-1)) for item in surface_shapes]
         gamma_w_shape = (num_nodes, n_wake_pts_chord*sum((i[2] - 1) for i in surface_shapes),)
         gamma_w = self.create_output('gamma_w', shape=gamma_w_shape, val=0.)
         start = 0
         for i in range(len(surface_shapes)):
             surface_shape = surface_shapes[i]
-
             ny = surface_shape[2]
             delta = (ny-1)*n_wake_pts_chord
+
             surface_gamma_w = self.declare_variable(surface_names[i]+'_gamma_w',shape=surface_gamma_w_shapes[i])
 
             gamma_w[:, start:start+delta] = csdl.reshape(surface_gamma_w, (num_nodes, np.prod(surface_gamma_w.shape)))

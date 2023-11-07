@@ -75,7 +75,7 @@ class BiotSavartComp(csdl.Model):
             eval_pts = self.declare_variable(eval_pt_name, shape=eval_pt_shape)
             vortex_coords = self.declare_variable(vortex_coords_name, shape=vortex_coords_shape)
 
-            # define panel points
+            # define panel points (evaluation dependent on MESH ORDERING)
             #                  C -----> D
             # ---v_inf-(x)-->  ^        |
             #                  |        v
@@ -98,7 +98,8 @@ class BiotSavartComp(csdl.Model):
                 v_da = self._induced_vel_line(self.r_D, self.r_A, self.r_D_norm, self.r_A_norm,'DA')
 
                 AIC = v_ab + v_bc + v_cd + v_da    
-                # self.print_var(AIC) 
+                # if 'aic_bd_' in output_name:
+                #     self.print_var(AIC) 
             
             else:
                 nx = eval_pt_shape[1]
@@ -130,7 +131,8 @@ class BiotSavartComp(csdl.Model):
                     v_da = self._induced_vel_line(self.r_D, self.r_A, self.r_D_norm, self.r_A_norm,'DA')
 
                     AIC = v_ab + v_bc + v_cd + v_da
-                    # self.print_var(AIC)
+                    # if 'aic_bd_' in output_name:
+                    #     self.print_var(AIC) 
 
                     symmetry_names, symmetry_axes = aic_symmetry_dict[output_name]['names'], aic_symmetry_dict[output_name]['axis']
                     ref_axis = aic_symmetry_dict[output_name]['ref_axis']
@@ -142,7 +144,6 @@ class BiotSavartComp(csdl.Model):
                         for m in range(AIC.shape[2]): # always 3 b/c 3rd dimension
                             AIC_vectorized[n*AIC_inner_shape + m*AIC.shape[1]:n*AIC_inner_shape + (m+1)*AIC.shape[1]] = csdl.reshape(AIC[n,:,m], new_shape=(AIC.shape[1],))
 
-                    # AIC_vectorized = csdl.reshape(AIC, (AIC.shape[1]*AIC.shape[2],))
                     # print(output_name)
                     for j, name in enumerate(symmetry_names):
                         axis = symmetry_axes[j]  
@@ -159,16 +160,10 @@ class BiotSavartComp(csdl.Model):
                         AIC_reflected = self.create_output(name, shape=AIC.shape)
                         for k in range(AIC.shape[2]): # always 3 b/c 3rd dimension
                             AIC_reflected[0,:,k] = csdl.reshape(AIC_reflected_vectorized[k*AIC.shape[1]:(k+1)*AIC.shape[1]], new_shape=(1,AIC.shape[1],1))
-
-                        # self.print_var(AIC_reflected)
-                        # AIC_reflected = csdl.reshape(AIC_reflected_vectorized, AIC.shape)
-                        # self.register_output(name=name, var=AIC_reflected)
-                        1
-
+                        # if 'aic_bd_' in name:
+                        #     self.print_var(AIC_reflected) 
 
             self.register_output(output_name, AIC)
-
-        1
 
     def __compute_expand_vecs(self, eval_pts, p_1, vortex_coords_shape, eval_pt_name, vortex_coords_name, output_name, point_name):
 
@@ -386,7 +381,8 @@ class AICReflection(csdl.CustomExplicitOperation):
         self.add_input(self.parameters['in_name'], shape=(vector_length,))
         self.add_output(self.parameters['out_name'], shape=(vector_length,))
 
-        self.system_matrix = self.create_system_matrix(axis=axis, ref_axis=ref_axis, vector_length=vector_length)
+        # self.system_matrix = self.create_system_matrix(axis=axis, ref_axis=ref_axis, vector_length=vector_length)
+        self.system_matrix = self.create_system_matrix_new(axis=axis, vector_length=vector_length)
         
         if self.parameters['plot'] == True:
             data_to_print = self.system_matrix.nonzero()
@@ -474,6 +470,22 @@ class AICReflection(csdl.CustomExplicitOperation):
         else: # 'yz
             system_matrix[:asdf, :asdf] *= -1. # only on x
         return system_matrix
+
+    def create_system_matrix_new(self, axis, vector_length):
+        asdf = int(vector_length/3)
+        rows, cols = np.arange(vector_length), np.arange(vector_length)
+        data = np.ones((vector_length, ))
+
+        if axis == 'y':
+            data[:asdf] *= -1 # x changes sign
+            data[2*asdf:] *= -1 # z changes sign
+        elif axis == 'z':
+            data[:2*asdf] *= -1 # x & y change sign
+        elif axis == 'yz':
+            data[asdf:] *= -1 # y & z change sign
+
+        sparse_system_matrix = csc_array((data, (rows, cols)))
+        return sparse_system_matrix
 
     def create_system_matrix(self, axis, ref_axis, vector_length):
         asdf = int(vector_length/3)

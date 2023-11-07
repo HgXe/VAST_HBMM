@@ -415,7 +415,8 @@ class AssembleAic(Model):
                 # print(eval_pt_names_sub)
                 # print(vortex_coords_names_sub)
                 # print(output_names_sub)
-                # print(aic_symmetry_dict)
+                # for key in output_names_sub:
+                #     print(key, aic_symmetry_dict[key])
                 # exit()
             '''
             THE GOAL WITH THE SYMMETRY:

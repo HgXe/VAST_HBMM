@@ -398,9 +398,20 @@ class ProfileOPModel4(csdl.Model):
                  name='MeshPreprocessing_comp')
 
         for surface_name in surface_names:
-            if 'mirror' in surface_name:
-                pass
-            elif 'wing' in surface_name:
+            # Marius did this:
+            # if 'mirror' in surface_name:
+            #     pass
+            # elif 'wing' in surface_name:
+            #     pass
+            # else:
+            #     i = surface_names.index(surface_name)
+            #     nx = bd_vortex_shapes[i][0]
+            #     ny = bd_vortex_shapes[i][1]
+            #     rotor_mesh = self.declare_variable(f'{surface_name}_velocity', shape=(n, nx-1, ny-1, 3), val=0)
+            #     self.register_output(f'{surface_name}_coll_vel', rotor_mesh * 1)
+
+            # I did this:
+            if 'wing' in surface_name:
                 pass
             else:
                 i = surface_names.index(surface_name)

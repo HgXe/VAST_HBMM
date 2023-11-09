@@ -231,9 +231,10 @@ class BiotSavartComp(csdl.Model):
             # num_expand = jnp.einsum('ij,l->ijl', num, jnp.ones(3))
             v_induced_line = num_expand * one_over_den
         else:
-            new_vc=False
+            new_vc=True
             if new_vc:
-                core_size = 0.05
+                # core_size = 0.05
+                core_size = 0.2
                 dor_r1_r2 = csdl.sum(r_1*r_2,axes=(2,))
                 r1s = r_1_norm**2
                 r2s = r_2_norm**2
@@ -242,10 +243,20 @@ class BiotSavartComp(csdl.Model):
                 # print('shapes in biot-savart law r1s',r1s.shape)
                 # print('shapes in biot-savart law dor_r1_r2',dor_r1_r2.shape)
                 # print('shapes in biot-savart law r_1_norm',r_1_norm.shape)
-                f1 = ( (r1s - dor_r1_r2)/((r1s + eps_s + 1e-10)**0.5) + (r2s - dor_r1_r2)/((r2s + eps_s + 1e-10) **0.5) )/(r1s*r2s - dor_r1_r2**2 + eps_s*(r1s + r2s - 2*r_1_norm*r_2_norm) + 1e-10)
+                # f1 = ( (r1s - dor_r1_r2)/((r1s + eps_s + 1e-10)**0.5) + (r2s - dor_r1_r2)/((r2s + eps_s + 1e-10) **0.5) )/(r1s*r2s - dor_r1_r2**2 + eps_s*(r1s + r2s - 2*r_1_norm*r_2_norm) + 1e-10)
+                f1 = ( (r1s - dor_r1_r2)/((r1s + eps_s)**0.5) + (r2s - dor_r1_r2)/((r2s + eps_s)**0.5) )/(r1s*r2s - dor_r1_r2**2 + eps_s*(r1s + r2s - 2*r_1_norm*r_2_norm) + 1e-10)
                 f2 = one_over_den
                 v_induced_line = csdl.expand(f1,(f2.shape),'ij->ijk') * f2 
                 # self.print_var(v_induced_line)
+
+                # finite core from BYU VortexLattice approach:
+                # if finite_core
+                #     rdot = dot(r1, r2)
+                #     r1s, r2s, εs = nr1^2, nr2^2, core_size^2
+                #     f1 = cross(r1, r2)/(r1s*r2s - rdot^2 + εs*(r1s + r2s - 2*nr1*nr2))
+                #     f2 = (r1s - rdot)/sqrt(r1s + εs) + (r2s - rdot)/sqrt(r2s + εs)
+
+                # Vhat = (f1*f2)/(4*pi)
 
 
             else:

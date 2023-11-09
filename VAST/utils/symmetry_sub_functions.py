@@ -19,6 +19,9 @@ def generate_symmetry_groups(sym_struct_list, bd_coll_pts_names, full_aic_name):
             elif 'mirror' in bd_coll_pts_names[sym_set[1]]:
                 # print('mirror in 2')
                 sub_dict = {'ref': [sym_set[1]], 'axis': ['z']}
+
+            else:
+                sub_dict = {'ref': [sym_set[1]], 'axis': ['y']}
         
         elif len_sym_set == 4:
             ref_list = []
@@ -83,8 +86,12 @@ def generate_symmetry_groups(sym_struct_list, bd_coll_pts_names, full_aic_name):
                     else:
                         if len(inner_surfaces) == 2:
                             interaction_groups.extend([(inner_surfaces[0], inner_surfaces[1]), (inner_surfaces[1], inner_surfaces[0])])
-                            interaction_axes.append('z') # NOTE: assuming that any combination of 2 surfaces is symmetric across z ONLY
-                            ref_axis = 'z'
+                            if inner_reflected_axes[0] == 'y':
+                                interaction_axes.append('y') 
+                                ref_axis = 'y'
+                            elif inner_reflected_axes[0] == 'z':
+                                interaction_axes.append('z') # NOTE: assuming that any combination of 2 surfaces is symmetric across z ONLY
+                                ref_axis = 'z'
                         else:
                             interaction_groups.extend([(surf, loop_surf), (loop_surf, surf)])
                             loop_surf_ind = inner_reflected_surfaces.index(loop_surf)

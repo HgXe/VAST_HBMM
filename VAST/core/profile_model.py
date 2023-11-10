@@ -21,7 +21,7 @@ from VAST.core.submodels.aerodynamic_submodels.seperate_gamma_b import SeperateG
 from VAST.core.submodels.wake_submodels.compute_wake_total_vel import ComputeWakeTotalVel
 from VAST.core.submodels.output_submodels.vlm_post_processing.compute_effective_aoa_cd_v import AOA_CD
 
-
+from VAST.utils.local_cylindrical_transform import local_cylindrical_transform
 
 import numpy as np
 
@@ -527,12 +527,30 @@ class ProfileOPModel4(csdl.Model):
 
 
             surface_dwake_coords_dt = self.create_output( surface_dwake_coords_dt_name, shape=((n, nt - 1, ny, 3)),val=0)
-            # print(surface_dwake_coords_dt.name,surface_dwake_coords_dt.shape)
 
             TE = surface_bd_vtx[:, nx - 1, :, :]
+            dcdt_init = (TE  + wake_total_vel[:, 0, :, :]*delta_t - surface_wake_coords[:, 0, :, :]) / delta_t # first wake after TE
+            dcdt_rest = (surface_wake_coords[:, :(surface_wake_coords.shape[1] - 1), :, :] - surface_wake_coords[:, 1:, :, :] + wake_total_vel[:, 1:, :, :] * delta_t) / delta_t # additional wake locations
+            if use_polar[i]: # INSERT CYLINDRICAL COORDINATE TRANSFORMATION HERE
+                sub_wake_dt = self.create_output(surface_dwake_coords_dt_name + '_pre_transform', shape=surface_dwake_coords_dt.shape, val=0.)
+                sub_wake_dt[:,0,:,:] = dcdt_init
+                sub_wake_dt[:,1:,:,:] = dcdt_rest
 
-            surface_dwake_coords_dt[:, 0, :, :] = (TE  + wake_total_vel[:, 0, :, :]*delta_t - surface_wake_coords[:, 0, :, :]) / delta_t
-            surface_dwake_coords_dt[:, 1:, :, :] = (surface_wake_coords[:, :(surface_wake_coords.shape[1] - 1), :, :] - surface_wake_coords[:, 1:, :, :] + wake_total_vel[:, 1:, :, :] * delta_t) / delta_t
+                dcdt_transformed = self.local_cylindrical_transform(
+                    pre_transform_val=sub_wake_dt,
+                    local_origin=False,
+                    coordinates=surface_wake_coords,
+                    dt=delta_t,
+                    convert_back_to_cartesian=True
+                    
+                )
+
+                surface_dwake_coords_dt[:, 0, :, :] = dcdt_transformed[:,0,:,:]
+                surface_dwake_coords_dt[:, 1:, :, :] = dcdt_transformed[:,1:,:,:]
+
+            else:
+                surface_dwake_coords_dt[:, 0, :, :] = (TE  + wake_total_vel[:, 0, :, :]*delta_t - surface_wake_coords[:, 0, :, :]) / delta_t
+                surface_dwake_coords_dt[:, 1:, :, :] = (surface_wake_coords[:, :(surface_wake_coords.shape[1] - 1), :, :] - surface_wake_coords[:, 1:, :, :] + wake_total_vel[:, 1:, :, :] * delta_t) / delta_t
 
         submodel = POSubmodel(
             surface_names=surface_names,
@@ -548,6 +566,26 @@ class ProfileOPModel4(csdl.Model):
         promotions = gen_promotions_list(surface_names, surface_shapes)
         self.add(submodel, name='po_submodel', promotes=promotions)
 
+    def local_cylindrical_transform(self,
+            pre_transform_val, # value to transform
+            local_origin, # local origin
+            coordinates, # absolute coordinates
+            dt, # timestep
+            convert_back_to_cartesian=True # flag to convert back to cartesian
+        ):
+        
+        local_position = coordinates - local_origin
+        local_radius = csdl.pnorm(local_position, axis=3)
+        transformed_val = self.create_output(pre_transform_val.name + '_out', val=0., shape=pre_transform_val.shape)
+        transformed_val[:,:,:,0] = pre_transform_val[:,:,:,0] * 1.
+
+        transformed_val[:,:,:,1] = (local_radius + (2./local_radius) * (local_position[:,:,:,1]*pre_transform_val[:,:,:,1] + local_position[:,:,:,2]*pre_transform_val[:,:,:,2])) \
+            * csdl.cos(csdl.atan2() + delta_t/local_radius**2 * (-local_position[:,:,:,2]*pre_transform_val[:,:,:,1] + local_position[:,:,:,1]*pre_transform_val[:,:,:,2]))
+        
+        transformed_val[:,:,:,2] = (local_radius + (2./local_radius) * (local_position[:,:,:,1]*pre_transform_val[:,:,:,1] + local_position[:,:,:,2]*pre_transform_val[:,:,:,2])) \
+            * csdl.sin(csdl.atan2() + delta_t/local_radius**2 * (-local_position[:,:,:,2]*pre_transform_val[:,:,:,1] + local_position[:,:,:,1]*pre_transform_val[:,:,:,2]))
+        
+        return transformed_val
         
 
 

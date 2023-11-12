@@ -44,6 +44,10 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
         self.parameters.declare('sym_struct_list', default=None)
+        self.parameters.declare('use_polar', default=False)
+        self.parameters.declare('polar_bool_list', default=False)
+        self.parameters.declare('prop_center_names', default=False)
+
     def assign_atributes(self):
         self.num_nodes = self.parameters['num_nodes']
         self.surface_names = self.parameters['surface_names']
@@ -60,6 +64,9 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.sub_eval_list = self.parameters['sub_eval_list']
         self.sub_induced_list = self.parameters['sub_induced_list']
         self.sym_struct_list = self.parameters['sym_struct_list']
+        self.use_polar = self.parameters['use_polar']
+        self.polar_bool_list = self.parameters['polar_bool_list']
+        self.prop_center_names = self.parameters['prop_center_names']
     def evaluate(self):
         self.assign_atributes()
         num_nodes = self.num_nodes
@@ -138,7 +145,10 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
                                sub = self.sub,
                                sub_eval_list = self.sub_eval_list,
                                sub_induced_list = self.sub_induced_list,
-                               sym_struct_list=self.sym_struct_list
+                               sym_struct_list=self.sym_struct_list,
+                               use_polar=self.use_polar,
+                               polar_bool_list=self.polar_bool_list,
+                               prop_center_names=self.prop_center_names
                                )
         return model
 

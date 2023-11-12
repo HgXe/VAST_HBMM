@@ -54,10 +54,13 @@ def switch_func(x, funcs_list, bounds_list, scale=10.):
     return y
 
 def switch_atan2_func(x, y, scale):
+    # x > 0
     f1 = csdl.arctan(y/x) * (0.5*csdl.tanh(scale*(x-0.)) + 0.5)
-    f2 = (csdl.arctan(y/x) + np.pi) * (0.5*csdl.tanh(scale*(0.-x)) + 0.5)*(0.5*csdl.tanh(scale*(y-0.)) + 0.5)
-    f3 = (csdl.arctan(y/x) - np.pi) * (0.5*csdl.tanh(scale*(0.-x)) + 0.5)*(0.5*csdl.tanh(scale*(0.-y)) + 0.5)
-    f4 = np.pi/2 * (0.5*(csdl.tanh(scale*(x-1e-5)) - csdl.tanh(scale*(x+1e-5)))) * (0.5*csdl.tanh(scale*(y-0)) + 0.5)
-    f5 = -np.pi/2 * (0.5*(csdl.tanh(scale*(x-1e-5)) - csdl.tanh(scale*(x+1e-5)))) * (0.5*csdl.tanh(scale*(0-y)) + 0.5)
+    # x < 0
+    f2 = (csdl.arctan(y/x) + np.pi) * (0.5*csdl.tanh(scale*(0.-x)) + 0.5)*(0.5*csdl.tanh(scale*(y-0.)) + 0.5) # y >= 0
+    f3 = (csdl.arctan(y/x) - np.pi) * (0.5*csdl.tanh(scale*(0.-x)) + 0.5)*(0.5*csdl.tanh(scale*(0.-y)) + 0.5) # y < 0
+    # x = 0
+    f4 = np.pi/2 * (0.5*(csdl.tanh(scale*(x-1e-5)) - csdl.tanh(scale*(x+1e-5)))) * (0.5*csdl.tanh(scale*(y-0)) + 0.5) # y >= 0
+    f5 = -np.pi/2 * (0.5*(csdl.tanh(scale*(x-1e-5)) - csdl.tanh(scale*(x+1e-5)))) * (0.5*csdl.tanh(scale*(0-y)) + 0.5) # y < 0
 
     return f1 + f2 + f3 + f4 + f5

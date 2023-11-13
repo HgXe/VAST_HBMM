@@ -39,6 +39,7 @@ def compute_spars(surface_shapes):
     sprs = coo_array(
         (data, (row, col)),
         shape=(num_wake_panel, num_total_bd_panel),
+        dtype='float32',
     )
     return sprs
 

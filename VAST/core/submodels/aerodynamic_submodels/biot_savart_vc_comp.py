@@ -495,7 +495,7 @@ class AICReflection(csdl.CustomExplicitOperation):
         elif axis == 'yz':
             data[asdf:] *= -1 # y & z change sign
 
-        sparse_system_matrix = csc_array((data, (rows, cols)))
+        sparse_system_matrix = csc_array((data, (rows, cols))).astype(int)
         return sparse_system_matrix
 
     def create_system_matrix(self, axis, ref_axis, vector_length):

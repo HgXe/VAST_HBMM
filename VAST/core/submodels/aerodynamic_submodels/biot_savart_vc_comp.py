@@ -346,7 +346,7 @@ class SymmetryFlip(csdl.CustomExplicitOperation):
         
         col_ind_flip = np.flip(col_ind_temp,axis=(2,4))
         col_indices = np.concatenate((col_ind_temp,col_ind_flip),axis=2).flatten()
-        self.declare_derivatives(self.parameters['out_name'], self.parameters['in_name'],rows=row_indices,cols=col_indices,val=np.ones(row_indices.size, dtype=int))
+        self.declare_derivatives(self.parameters['out_name'], self.parameters['in_name'],rows=row_indices,cols=col_indices,val=np.ones(row_indices.size, dtype='u8'))
 
     def compute(self, inputs, outputs):
         outputs[self.parameters['out_name']] = self.full_aic_func(inputs[self.parameters['in_name']]).reshape(1,-1,3)
@@ -495,7 +495,7 @@ class AICReflection(csdl.CustomExplicitOperation):
         elif axis == 'yz':
             data[asdf:] *= -1 # y & z change sign
 
-        sparse_system_matrix = csc_array((data, (rows, cols))).astype(int)
+        sparse_system_matrix = csc_array((data, (rows, cols))).astype('b')
         return sparse_system_matrix
 
     def create_system_matrix(self, axis, ref_axis, vector_length):
@@ -506,7 +506,7 @@ class AICReflection(csdl.CustomExplicitOperation):
             data = np.ones((vector_length, ), dtype=int)
             if 'z' in axis:
                 data[:2*asdf]  *= -1
-            sparse_system_matrix = csc_array((data, (rows, cols)))
+            sparse_system_matrix = csc_array((data, (rows, cols))).astype('b')
         elif ref_axis == 'plane':
             if axis == 'z':
                 rows, cols = np.arange(vector_length), np.arange(vector_length)

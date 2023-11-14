@@ -68,9 +68,6 @@ class HorseshoeCirculations(Model):
         rows = np.concatenate(rows).astype(int)
         cols = np.concatenate(cols).astype(int)
 
-        print(system_size)
-        exit()
-
         mtx_val = csc_matrix((data, (rows, cols)),
                              shape=(system_size, system_size)).astype(int).toarray()
 

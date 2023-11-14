@@ -346,7 +346,7 @@ class SymmetryFlip(csdl.CustomExplicitOperation):
         
         col_ind_flip = np.flip(col_ind_temp,axis=(2,4))
         col_indices = np.concatenate((col_ind_temp,col_ind_flip),axis=2).flatten()
-        self.declare_derivatives(self.parameters['out_name'], self.parameters['in_name'],rows=row_indices,cols=col_indices,val=np.ones(row_indices.size))
+        self.declare_derivatives(self.parameters['out_name'], self.parameters['in_name'],rows=row_indices,cols=col_indices,val=np.ones(row_indices.size, dtype=int))
 
     def compute(self, inputs, outputs):
         outputs[self.parameters['out_name']] = self.full_aic_func(inputs[self.parameters['in_name']]).reshape(1,-1,3)
@@ -485,7 +485,7 @@ class AICReflection(csdl.CustomExplicitOperation):
     def create_system_matrix_new(self, axis, vector_length):
         asdf = int(vector_length/3)
         rows, cols = np.arange(vector_length), np.arange(vector_length)
-        data = np.ones((vector_length, ))
+        data = np.ones((vector_length, ), dtype=int)
 
         if axis == 'y':
             data[:asdf] *= -1 # x changes sign
@@ -503,14 +503,14 @@ class AICReflection(csdl.CustomExplicitOperation):
         if ref_axis == 'self':
             # sparse_system_matrix = csc_array(sparse_eye(vector_length))
             rows, cols = np.arange(vector_length), np.arange(vector_length)
-            data = np.ones((vector_length, ))
+            data = np.ones((vector_length, ), dtype=int)
             if 'z' in axis:
                 data[:2*asdf]  *= -1
             sparse_system_matrix = csc_array((data, (rows, cols)))
         elif ref_axis == 'plane':
             if axis == 'z':
                 rows, cols = np.arange(vector_length), np.arange(vector_length)
-                data = np.ones((vector_length, ))
+                data = np.ones((vector_length, ), dtype=int)
                 if 'z' in axis:
                     data[:2*asdf]  *= -1
                 sparse_system_matrix = csc_array((data, (rows, cols)))
@@ -550,7 +550,7 @@ class AICReflection(csdl.CustomExplicitOperation):
         elif ref_axis == 'z':
             if axis == 'z':
                 rows, cols = np.arange(vector_length), np.arange(vector_length)
-                data = np.ones((vector_length, ))
+                data = np.ones((vector_length, ), dtype=int)
                 if 'z' in axis:
                     data[:2*asdf]  *= -1
                 sparse_system_matrix = csc_array((data, (rows, cols)))
@@ -590,7 +590,7 @@ class AICReflection(csdl.CustomExplicitOperation):
         elif 'y' in ref_axis:
             if axis == 'z':
                 rows, cols = np.arange(vector_length), np.arange(vector_length)
-                data = np.ones((vector_length, ))
+                data = np.ones((vector_length, ), dtype=int)
                 if 'z' in axis:
                     data[:2*asdf]  *= -1
                 sparse_system_matrix = csc_array((data, (rows, cols)))

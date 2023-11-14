@@ -39,7 +39,7 @@ class HorseshoeCirculations(Model):
             ny = surface_shapes[i][2]
             system_size += (nx - 1) * (ny - 1)
 
-        data = [np.ones(system_size)]
+        data = [np.ones(system_size, dtype=int)]
         rows = [np.arange(system_size)]
         cols = [np.arange(system_size)]
 
@@ -55,7 +55,7 @@ class HorseshoeCirculations(Model):
 
             arange = np.arange(num).reshape((nx - 1), (ny - 1))
 
-            data_ = -np.ones((nx - 2) * (ny - 1))
+            data_ = -np.ones((nx - 2) * (ny - 1), dtype=int)
             rows_ = ind_1 + arange[1:, :].flatten()
             cols_ = ind_1 + arange[:-1, :].flatten()
 
@@ -64,9 +64,12 @@ class HorseshoeCirculations(Model):
             cols.append(cols_)
             ind_1 += num
 
-        data = np.concatenate(data)
-        rows = np.concatenate(rows)
-        cols = np.concatenate(cols)
+        data = np.concatenate(data).astype(int)
+        rows = np.concatenate(rows).astype(int)
+        cols = np.concatenate(cols).astype(int)
+
+        print(system_size)
+        exit()
 
         mtx_val = csc_matrix((data, (rows, cols)),
                              shape=(system_size, system_size)).astype(int).toarray()
@@ -92,7 +95,8 @@ class HorseshoeCirculations(Model):
                                                                 ijk=(system_size, system_size,num_nodes),
                                                                 out_name='horseshoe_circulation'))
 
-        
+        # mtx (rows, cols)
+        # surface_gamma_b (num_nodes, system_size)
         
         # csdl.einsum(mtx,
         #                                     surface_gamma_b,

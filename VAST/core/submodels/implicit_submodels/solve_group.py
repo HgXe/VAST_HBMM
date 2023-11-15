@@ -45,6 +45,7 @@ class SolveMatrix(Model):
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
         self.parameters.declare('sym_struct_list', default=None)
+        self.parameters.declare('core_size', default=5.e-2)
 
         # pass
 
@@ -95,7 +96,8 @@ class SolveMatrix(Model):
                     sub = sub,
                     sub_eval_list = sub_eval_list,
                     sub_induced_list = sub_induced_list,
-                    sym_struct_list=sym_struct_list
+                    sym_struct_list=sym_struct_list,
+                    core_size=self.parameters['core_size']
                 ), 'RHS_group')
         elif self.parameters['end']==True:
             model.add(
@@ -109,7 +111,8 @@ class SolveMatrix(Model):
                     sub = sub,
                     sub_eval_list = sub_eval_list,
                     sub_induced_list = sub_induced_list,
-                    sym_struct_list=sym_struct_list
+                    sym_struct_list=sym_struct_list,
+                    core_size=self.parameters['core_size']
                 ), 'RHS_group')
 
         self.add(model, 'prepossing_before_Solve')

@@ -318,6 +318,7 @@ class ProfileOPModel4(csdl.Model):
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
         self.parameters.declare('sym_struct_list', default=None)
+        self.parameters.declare('core_size', default=5.e-2)
 
     def define(self):
         # rename parameters
@@ -332,6 +333,7 @@ class ProfileOPModel4(csdl.Model):
         sub_induced_list = self.parameters['sub_induced_list']
         symmetry = self.parameters['symmetry']
         sym_struct_list = self.parameters['sym_struct_list']
+        core_size = self.parameters['core_size']
         
         problem_type = 'prescribed_wake'
         if free_wake:
@@ -432,7 +434,8 @@ class ProfileOPModel4(csdl.Model):
                                 sub = sub,
                                 sub_eval_list = sub_eval_list,
                                 sub_induced_list = sub_induced_list,
-                                sym_struct_list=sym_struct_list),
+                                sym_struct_list=sym_struct_list,
+                                core_size=core_size),
                     name='solve_gamma_b_group')
 
         self.add(SeperateGammab(surface_names=surface_names,
@@ -512,7 +515,8 @@ class ProfileOPModel4(csdl.Model):
                                 sub=sub,
                                 sub_eval_list=sub_eval_list,
                                 sub_induced_list=sub_induced_list,
-                                sym_struct_list=sym_struct_list
+                                sym_struct_list=sym_struct_list,
+                                core_size=core_size
                                 ),
                  name='ComputeWakeTotalVel')            
         for i in range(len(surface_names)):
@@ -543,7 +547,8 @@ class ProfileOPModel4(csdl.Model):
             sym_struct_list=sym_struct_list,
             sub=sub,
             sub_eval_list=sub_eval_list,
-            sub_induced_list=sub_induced_list
+            sub_induced_list=sub_induced_list,
+            core_size=core_size
         )
         promotions = gen_promotions_list(surface_names, surface_shapes)
         self.add(submodel, name='po_submodel', promotes=promotions)
@@ -572,6 +577,7 @@ class POSubmodel(csdl.Model):
         self.parameters.declare('sub', default=False)
         self.parameters.declare('sub_eval_list', default=None)
         self.parameters.declare('sub_induced_list', default=None)
+        self.parameters.declare('core_size', default=5.e-2)
     def define(self):
         surface_names = self.parameters['surface_names']
         ode_surface_shapes = self.parameters['ode_surface_shapes']
@@ -582,6 +588,7 @@ class POSubmodel(csdl.Model):
         sub_induced_list = self.parameters['sub_induced_list']
         symmetry = self.parameters['symmetry']
         sym_struct_list = self.parameters['sym_struct_list']
+        core_size = self.parameters['core_size']
 
         eval_pts_names = [x + '_eval_pts_coords' for x in surface_names]
         eval_pts_shapes =        [
@@ -612,6 +619,7 @@ class POSubmodel(csdl.Model):
             sub_induced_list=sub_induced_list,
             sym_struct_list=sym_struct_list,
             symmetry=self.parameters['symmetry'],
+            core_size=core_size
         )
         self.add(submodel, name='EvalPtsVel')
 

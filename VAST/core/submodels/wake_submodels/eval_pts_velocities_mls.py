@@ -52,6 +52,7 @@ class EvalPtsVel(Model):
         self.parameters.declare('sub_eval_list', default=None)
         self.parameters.declare('sub_induced_list', default=None)
         self.parameters.declare('sym_struct_list', default=None)
+        self.parameters.declare('core_size', default=5.e-2)
 
     def define(self):
         eval_pts_names = self.parameters['eval_pts_names']
@@ -181,7 +182,7 @@ class EvalPtsVel(Model):
                 output_names=output_names_expanded_sub,
                 circulation_names=circulation_names, # not used, doesn't matter here
                 vc=True,
-                eps=5e-2,
+                core_size=self.parameters['core_size'],
                 symmetry=self.parameters['symmetry'],
                 aic_symmetry_dict=aic_symmetry_dict
             ),
@@ -224,6 +225,7 @@ class EvalPtsVel(Model):
                     vortex_coords_shapes=bdnwake_coords_shapes_expanded_sub,
                     output_names=output_names_expanded_sub,
                     vc=True,
+                    core_size=self.parameters['core_size'],
                     symmetry=self.parameters['symmetry'],
                     aic_symmetry_dict=aic_symmetry_dict
                 )
@@ -238,6 +240,7 @@ class EvalPtsVel(Model):
                     vortex_coords_shapes=bdnwake_coords_shapes_expanded,
                     output_names=output_names_expanded,
                     vc=True,
+                    core_size=self.parameters['core_size'],
                     symmetry=self.parameters['symmetry'],
                 )
                 self.add(m, name='eval_pts_aics')            

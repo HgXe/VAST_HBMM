@@ -58,6 +58,7 @@ class ComputeWakeTotalVel(Model):
         self.parameters.declare('sub_eval_list', default=None)
         self.parameters.declare('sub_induced_list', default=None)
         self.parameters.declare('sym_struct_list', default=None)
+        self.parameters.declare('core_size', default=5.e-2)
 
     def define(self):
         n_wake_pts_chord = self.parameters['n_wake_pts_chord']
@@ -93,7 +94,8 @@ class ComputeWakeTotalVel(Model):
                 sub=sub, 
                 sub_eval_list=sub_eval_list,
                 sub_induced_list=sub_induced_list,
-                sym_struct_list=sym_struct_list
+                sym_struct_list=sym_struct_list,
+                core_size=self.parameters['core_size']
                 
             )
             self.add(submodel, name='EvalPtsVel')

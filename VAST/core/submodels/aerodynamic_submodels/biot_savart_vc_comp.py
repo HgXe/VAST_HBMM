@@ -40,7 +40,7 @@ class BiotSavartComp(csdl.Model):
         self.parameters.declare('output_names', types=list)
         # whether to enable the fixed vortex core model
         self.parameters.declare('vc', default=False)
-        self.parameters.declare('eps', default=5e-4)
+        self.parameters.declare('core_size', default=5e-4)
 
         self.parameters.declare('circulation_names', default=None)
         self.parameters.declare('symmetry',default=False)
@@ -53,7 +53,7 @@ class BiotSavartComp(csdl.Model):
         vortex_coords_shapes = self.parameters['vortex_coords_shapes']
         output_names = self.parameters['output_names']
         vc = self.parameters['vc']
-        eps = self.parameters['eps']
+        core_size = self.parameters['core_size']
         # circulation_names = self.parameters['circulation_names']
         symmetry = self.parameters['symmetry']
         aic_symmetry_dict = self.parameters['aic_symmetry_dict']
@@ -234,7 +234,8 @@ class BiotSavartComp(csdl.Model):
             new_vc=True
             if new_vc:
                 # core_size = 0.05
-                core_size = 0.2
+                # core_size = 0.2
+                core_size = self.parameters['core_size']
                 dor_r1_r2 = csdl.sum(r_1*r_2,axes=(2,))
                 r1s = r_1_norm**2
                 r2s = r_2_norm**2

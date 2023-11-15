@@ -80,7 +80,7 @@ class HorseshoeCirculations(Model):
         mtx_val[rows, cols] = data
 
 
-        A = mtx = self.create_input('mtx', val=mtx_val)
+        A = mtx = self.create_input('mtx', val=mtx_val.astype(int))
 
         # gamma_b = self.declare_variable(
         #     'gamma_b', shape_by_conn=True)  # shape_by_conn not working

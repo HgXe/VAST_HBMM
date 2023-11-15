@@ -69,8 +69,15 @@ class HorseshoeCirculations(Model):
         cols = np.concatenate(cols).astype(int)
 
 
-        mtx_val = csc_matrix((data, (rows, cols)),
-                             shape=(system_size, system_size)).astype(int).toarray()
+        #mtx_val = csc_matrix((data, (rows, cols)),
+        #                     shape=(system_size, system_size)).astype(int).toarray()
+        
+
+        # Create a dense NumPy array without using csc_matrix
+        mtx_val = np.zeros((system_size, system_size), dtype=int)
+
+        # Populate the dense array with values from 'data' at positions specified by 'rows' and 'cols'
+        mtx_val[rows, cols] = data
 
 
         A = mtx = self.create_input('mtx', val=mtx_val)

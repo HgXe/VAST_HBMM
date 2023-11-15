@@ -143,6 +143,10 @@ class Projection(csdl.Model):
                                           in_name_2=normals_reshaped.name,
                                           in_shape=input_vel.shape,
                                           out_name=output_vel_name))
+                    
+                    #velocity_projections = csdl.matmat(input_vel, csdl.transpose(normals_reshaped))
+                    #self.print_var(velocity_projections)
+                    #outputs[out_name] = inputs[in_name_1] @ inputs[in_name_2].transpose()
 
                     self.register_output(output_vel_name, velocity_projections)
                 delta = normals_reshaped.shape[1]
@@ -162,7 +166,7 @@ class Projection(csdl.Model):
                                         output_vel_name,
                                         in_shape=input_vel.shape,
                                         out_name=output_vel_name))
-
+                # self.print_var(velocity_projections)
                 self.register_output(output_vel_name, velocity_projections)
 
 

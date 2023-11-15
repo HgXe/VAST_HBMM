@@ -6,7 +6,7 @@ import numpy as np
 from numpy.core.fromnumeric import size
 
 from scipy.sparse import csc_matrix
-from VAST.utils.custom_einsums import EinsumIjKjKi
+# from VAST.utils.custom_einsums import EinsumIjKjKi
 
 class HorseshoeCirculations(Model):
     """ 
@@ -68,10 +68,12 @@ class HorseshoeCirculations(Model):
         rows = np.concatenate(rows).astype(int)
         cols = np.concatenate(cols).astype(int)
 
-        mtx_val = csc_matrix((data, (rows, cols)),
-                             shape=(system_size, system_size)).astype('b').toarray()
 
-        mtx = self.create_input('mtx', val=mtx_val)
+        mtx_val = csc_matrix((data, (rows, cols)),
+                             shape=(system_size, system_size)).astype(int).toarray()
+
+
+        A = mtx = self.create_input('mtx', val=mtx_val)
 
         # gamma_b = self.declare_variable(
         #     'gamma_b', shape_by_conn=True)  # shape_by_conn not working
@@ -79,18 +81,32 @@ class HorseshoeCirculations(Model):
         #!TODO:fix this for mls!
         # surface_gamma_b_name = surface_names[0] + '_gamma_b'
         surface_gamma_b_name = 'gamma_b'
-        surface_gamma_b = self.declare_variable(surface_gamma_b_name,
+        B = surface_gamma_b = self.declare_variable(surface_gamma_b_name,
                                                 shape=(num_nodes, system_size))
         # gamma_b = self.declare_variable('gamma_b', shape=(system_size, ))
 
         # print(gamma_b.shape)
         # print(mtx.shape)
-        horseshoe_circulation = csdl.custom(mtx,
-                                            surface_gamma_b,
-                                            op=EinsumIjKjKi(in_name_1='mtx',
-                                                                in_name_2='gamma_b',
-                                                                ijk=(system_size, system_size,num_nodes),
-                                                                out_name='horseshoe_circulation'))
+        # horseshoe_circulation = csdl.custom(mtx,
+        #                                     surface_gamma_b,
+        #                                     op=EinsumIjKjKi(in_name_1='mtx',
+        #                                                         in_name_2='gamma_b',
+        #                                                         ijk=(system_size, system_size, num_nodes),
+        #                                                         out_name='horseshoe_circulation'))
+
+        # manual horseshoe_circulation calc:
+        #B = self.create_output('B', shape=(num_nodes, system_size), val=0)
+
+        C = csdl.transpose(csdl.matmat(A, csdl.transpose(B)))
+        
+        # i = 2
+        # j = 3
+        # k = 4
+        # A = np.ones((i,j))*0.1
+        # B = np.ones((k,j))
+
+        # C = np.einsum('ij,kj->ki',A,B)
+        # D = (A @ B.T).T
 
         # mtx (rows, cols)
         # surface_gamma_b (num_nodes, system_size)
@@ -101,7 +117,8 @@ class HorseshoeCirculations(Model):
         # print('horseshoe_circulation horseshoe_circulation shape',
         #       horseshoe_circulation.shape)
 
-        self.register_output('horseshoe_circulation', horseshoe_circulation)
+        #self.register_output('horseshoe_circulation', horseshoe_circulation)
+        self.register_output('horseshoe_circulation', C)
 
 
 if __name__ == "__main__":

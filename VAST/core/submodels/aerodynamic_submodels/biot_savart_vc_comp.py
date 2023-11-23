@@ -485,7 +485,7 @@ class AICReflection(csdl.CustomExplicitOperation):
 
     def create_system_matrix_new(self, axis, vector_length):
         asdf = int(vector_length/3)
-        rows, cols = np.arange(vector_length), np.arange(vector_length)
+        rows, cols = np.arange(vector_length, dtype=int), np.arange(vector_length, dtype=int)
         data = np.ones((vector_length, ), dtype=int)
 
         if axis == 'y':

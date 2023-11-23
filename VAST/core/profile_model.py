@@ -21,7 +21,7 @@ from VAST.core.submodels.aerodynamic_submodels.seperate_gamma_b import SeperateG
 from VAST.core.submodels.wake_submodels.compute_wake_total_vel import ComputeWakeTotalVel
 from VAST.core.submodels.output_submodels.vlm_post_processing.compute_effective_aoa_cd_v import AOA_CD
 
-
+from VAST.utils.atan2_switch import atan2_switch
 
 import numpy as np
 
@@ -319,6 +319,12 @@ class ProfileOPModel4(csdl.Model):
         self.parameters.declare('sub_induced_list',default=None)
         self.parameters.declare('sym_struct_list', default=None)
         self.parameters.declare('core_size', default=5.e-2)
+        self.parameters.declare('rpm', default=None)
+        self.parameters.declare('rpm_dir', default=None)
+        self.parameters.declare('rot_surf_names', default=None)
+        self.parameters.declare('center_point_names', default=False)
+        self.parameters.declare('use_polar', default=False)
+        self.parameters.declare('polar_bool_list', default=False)
 
     def define(self):
         # rename parameters
@@ -328,12 +334,36 @@ class ProfileOPModel4(csdl.Model):
         delta_t = self.parameters['delta_t']
         nt = self.parameters['nt']
         free_wake = self.parameters['free_wake']
+        # SUB DATA
         sub = self.parameters['sub']
         sub_eval_list = self.parameters['sub_eval_list']
         sub_induced_list = self.parameters['sub_induced_list']
+
+        # SYMMETRY DATA
         symmetry = self.parameters['symmetry']
         sym_struct_list = self.parameters['sym_struct_list']
         core_size = self.parameters['core_size']
+
+        # ROTATIONAL VELOCITY
+        if self.parameters['rpm'] is not None:
+            rpm = self.parameters['rpm'] # list of RPMs
+            rpm_dir = self.parameters['rpm_dir'] # list of directions; + means +x, - means -x for RHR
+
+        # POLAR COORDINATE DATA
+        use_polar = self.parameters['use_polar']
+        if not use_polar:
+            polar_bool_list = [False] * len(surface_names)
+        else:
+            polar_bool_list = self.parameters['polar_bool_list']
+        rot_surf_names = self.parameters['rot_surf_names']
+        center_point_names = self.parameters['center_point_names']
+        
+        # NOTE-TODO: FIX THIS HARD CODED POINT LIST
+        if use_polar:
+            polar_surf_loop_count = 0
+        point_list = []
+        point_list.extend([np.array([12.192,  -26.5176,  20+1.524 ])] * 2)
+        point_list.extend([np.array([12.192,  26.5176,  20+1.524 ])] * 2)
         
         problem_type = 'prescribed_wake'
         if free_wake:
@@ -412,15 +442,47 @@ class ProfileOPModel4(csdl.Model):
             #     rotor_mesh = self.declare_variable(f'{surface_name}_velocity', shape=(n, nx-1, ny-1, 3), val=0)
             #     self.register_output(f'{surface_name}_coll_vel', rotor_mesh * 1)
 
-            # I did this:
-            if 'wing' in surface_name:
-                pass
-            else:
-                i = surface_names.index(surface_name)
-                nx = bd_vortex_shapes[i][0]
-                ny = bd_vortex_shapes[i][1]
-                rotor_mesh = self.declare_variable(f'{surface_name}_velocity', shape=(n, nx-1, ny-1, 3), val=0)
-                self.register_output(f'{surface_name}_coll_vel', rotor_mesh * 1)
+            # I did this (Nicholas):
+            pass
+            # if 'wing' in surface_name:
+            #     pass
+            # else:
+            #     i = surface_names.index(surface_name)
+            #     nx = bd_vortex_shapes[i][0]
+            #     ny = bd_vortex_shapes[i][1]
+            #     rotor_mesh = self.declare_variable(f'{surface_name}_velocity', shape=(n, nx-1, ny-1, 3), val=0)
+            #     self.register_output(f'{surface_name}_coll_vel', rotor_mesh * 1)
+
+        # I DID THIS (LUCA SCOTZNIOVSKY)
+        print(center_point_names)
+        print(rot_surf_names)
+        # exit()
+        if rpm is not None:
+            for i, rot_surf_name in enumerate(rot_surf_names):
+                surf_index = surface_names.index(rot_surf_name) # index of surface in full surface list
+                surf_shape = surface_shapes[surf_index] # shape
+                num_x, num_y = surf_shape[0], surf_shape[1] 
+                coll_coords = self.declare_variable(rot_surf_name + '_coll_pts_coords', shape=(n,num_x-1,num_y-1,3))
+                # self.print_var(coll_coords)
+                # local_origin = self.declare_variable(center_point_names[i], val = point_list[i], shape=(3,))
+                local_origin = self.declare_variable(center_point_names[i], shape=(3,)) # THIS GETS CONNECTED 
+                local_origin_exp = csdl.expand(local_origin, coll_coords.shape, 'i->abci')
+                local_position = coll_coords - local_origin_exp
+                radius = csdl.reshape(csdl.pnorm(local_position, axis=3), (coll_coords.shape[:3]) + (1,))
+                coll_tangential_vel = radius * rpm[i] *2*np.pi/60.
+
+                # if np.mod(i,2) == 0:
+                #     self.print_var(local_origin)
+                #     self.print_var(coll_coords)
+                #     self.print_var(radius)
+
+                theta = atan2_switch(x=local_position[:,:,:,1], y=local_position[:,:,:,2])
+                coll_vel = self.create_output(f'{rot_surf_name}_coll_vel', val=0., shape=coll_coords.shape)
+                coll_vel[:,:,:,1] = coll_tangential_vel*csdl.sin(theta) * rpm_dir[i]
+                coll_vel[:,:,:,2] = -coll_tangential_vel*csdl.cos(theta) * rpm_dir[i]
+                # self.print_var(local_position)
+                # self.print_var(radius)
+                # self.print_var(coll_vel)
 
         self.add(CombineGammaW(surface_names=surface_names, surface_shapes=ode_surface_shapes, n_wake_pts_chord=nt-1),
             name='combine_gamma_w')
@@ -518,7 +580,8 @@ class ProfileOPModel4(csdl.Model):
                                 sym_struct_list=sym_struct_list,
                                 core_size=core_size
                                 ),
-                 name='ComputeWakeTotalVel')            
+                 name='ComputeWakeTotalVel')   
+            
         for i in range(len(surface_names)):
             nx = bd_vortex_shapes[i][0]
             ny = bd_vortex_shapes[i][1]
@@ -531,10 +594,76 @@ class ProfileOPModel4(csdl.Model):
 
 
             surface_dwake_coords_dt = self.create_output( surface_dwake_coords_dt_name, shape=((n, nt - 1, ny, 3)),val=0)
-            # print(surface_dwake_coords_dt.name,surface_dwake_coords_dt.shape)
 
             TE = surface_bd_vtx[:, nx - 1, :, :]
 
+            # region polar ODE formulation (CURRENTLY NOT USED)
+            if False:
+                dcdt_init = wake_total_vel[:, 0, :, :]*delta_t  # first wake after TE
+                dcdt_rest = wake_total_vel[:, 1:, :, :] * delta_t # additional wake locations
+                if polar_bool_list[i]: # INSERT CYLINDRICAL COORDINATE TRANSFORMATION HERE
+                    sub_wake_dt = self.create_output(surface_dwake_coords_dt_name[:-3] + '_pre_transform', shape=surface_dwake_coords_dt.shape, val=0.)
+                    sub_wake_dt[:,0,:,:] = dcdt_init
+                    sub_wake_dt[:,1:,:,:] = dcdt_rest
+
+                    local_origin = self.declare_variable(prop_center_names[polar_surf_loop_count], val = point_list[polar_surf_loop_count], shape=(3,))
+
+                    # coordinates = surface_wake_coords + csdl.expand(
+                    #         csdl.reshape(TE, (1,5,3)), 
+                    #         surface_wake_coords.shape, 
+                    #         'ijk->iajk'
+                    #     )
+                    
+                    # coordinates = csdl.expand(
+                    #     csdl.reshape(TE, (1,5,3)), 
+                    #     surface_wake_coords.shape, 
+                    #     'ijk->iajk'
+                    # )
+                    
+                    coordinates = self.create_output('coordinates_' + surface_names[i], shape=surface_wake_coords.shape, val=0.)
+                    local_origin_exp = csdl.expand(local_origin, coordinates.shape, 'i->abci')
+                    coordinates[:, 0, :, :] = surface_wake_coords[:,0,:,:]
+                    # coordinates[:, 0, :, :] = TE + surface_wake_coords[:,0,:,:]
+                    coordinates[:, 1:, :, :] = surface_wake_coords[:,1:,:,:]
+                    # coordinates[:, 1:, :, :] = csdl.expand(
+                    #     csdl.reshape(TE, (1,5,3)), 
+                    #     coordinates[:,1:,:,:].shape, 
+                    #     'ijk->iajk'
+                    # ) + surface_wake_coords[:,1:,:,:]
+                    # coordinates[:, 0, :, :] = TE + surface_wake_coords[:,0,:,:] + local_origin_exp[:, 0, :, :]
+                    # coordinates[:, 1:, :, :] = surface_wake_coords[:,1:,:,:] + local_origin_exp[:, 1:, :, :]
+
+                    dc_transformed = self.local_cylindrical_transform(
+                        pre_transform_val=sub_wake_dt,
+                        local_origin=local_origin,
+                        # coordinates=surface_wake_coords,
+                        coordinates=coordinates,
+                        delta_t=delta_t,
+                        i = surface_names[i]
+                    )
+                    # self.print_var(dc_transformed)
+
+                    # surface_dwake_coords_dt[:, :, :, 0] = dc_transformed[:,:,:,0] / delta_t
+                    # # surface_dwake_coords_dt[:, 1:, :, 0] = (dc_transformed[:,1:,:,0]) / delta_t
+
+                    # surface_dwake_coords_dt[:, 0, :, 1:] = (dc_transformed[:,0,:,1:] - coordinates[:, 0, :, 1:]) / delta_t
+                    # surface_dwake_coords_dt[:, 1:, :, 1:] = (dc_transformed[:,1:,:,1:] - coordinates[:, 1:, :, 1:]) / delta_t
+                    surface_dwake_coords_dt[:, 0, :, :] = (TE + dc_transformed[:,0,:,:] - surface_wake_coords[:, 0, :, :]) / delta_t
+                    surface_dwake_coords_dt[:, 1:, :, :] = (surface_wake_coords[:, :(surface_wake_coords.shape[1] - 1), :, :] - surface_wake_coords[:, 1:, :, :] + dc_transformed[:,1:,:,:]) / delta_t
+                    # self.print_var(surface_dwake_coords_dt)
+                # dcdt_init = (TE  + wake_total_vel[:, 0, :, :]*delta_t - surface_wake_coords[:, 0, :, :]) / delta_t # first wake after TE
+                # dcdt_rest = (surface_wake_coords[:, :(surface_wake_coords.shape[1] - 1), :, :] - surface_wake_coords[:, 1:, :, :] + wake_total_vel[:, 1:, :, :] * delta_t) / delta_t # additional wake locations
+
+                    polar_surf_loop_count += 1
+
+                else:
+                    # self.print_var(surface_wake_coords)
+                    surface_dwake_coords_dt[:, 0, :, :] = (TE  + wake_total_vel[:, 0, :, :]*delta_t - surface_wake_coords[:, 0, :, :]) / delta_t
+                    surface_dwake_coords_dt[:, 1:, :, :] = (surface_wake_coords[:, :(surface_wake_coords.shape[1] - 1), :, :] - surface_wake_coords[:, 1:, :, :] + wake_total_vel[:, 1:, :, :] * delta_t) / delta_t
+                    # self.print_var(surface_dwake_coords_dt)
+            # endregion
+
+            # NON-POLAR ODE FORMULATION
             surface_dwake_coords_dt[:, 0, :, :] = (TE  + wake_total_vel[:, 0, :, :]*delta_t - surface_wake_coords[:, 0, :, :]) / delta_t
             surface_dwake_coords_dt[:, 1:, :, :] = (surface_wake_coords[:, :(surface_wake_coords.shape[1] - 1), :, :] - surface_wake_coords[:, 1:, :, :] + wake_total_vel[:, 1:, :, :] * delta_t) / delta_t
 
@@ -553,6 +682,53 @@ class ProfileOPModel4(csdl.Model):
         promotions = gen_promotions_list(surface_names, surface_shapes)
         self.add(submodel, name='po_submodel', promotes=promotions)
 
+    def local_cylindrical_transform(self,
+            pre_transform_val, # value to transform
+            local_origin, # local origin
+            coordinates, # absolute coordinates
+            delta_t, # timestep,
+            i=False
+        ):
+        
+        local_origin_exp = csdl.expand(local_origin, coordinates.shape, 'i->abci')
+        local_position = coordinates - local_origin_exp
+
+        local_radius = csdl.reshape(csdl.pnorm(local_position[:,:,:,1:], axis=3), local_position.shape[:3] + (1,))
+        transformed_val = self.create_output(pre_transform_val.name + '_out', val=0., shape=pre_transform_val.shape)
+        
+        # print(pre_transform_val.shape)
+        transformed_val[:,:,:,0] = pre_transform_val[:,:,:,0] * 1.
+
+        term_1 = local_radius + (local_position[:,:,:,1]*pre_transform_val[:,:,:,1] + local_position[:,:,:,2]*pre_transform_val[:,:,:,2]) / local_radius
+        
+        term_2_atan = atan2_switch(x=local_position[:,:,:,1], y=local_position[:,:,:,2])
+        term_2_2 = 1/local_radius**2 * (-local_position[:,:,:,2]*pre_transform_val[:,:,:,1] + local_position[:,:,:,1]*pre_transform_val[:,:,:,2])        
+
+        transformed_val[:,:,:,1] = term_1 * csdl.cos(term_2_atan + term_2_2) \
+            - local_position[:,:,:,1]
+        
+        transformed_val[:,:,:,2] = term_1 * csdl.sin(term_2_atan + term_2_2) \
+            - local_position[:,:,:,2]
+        # self.print_var(transformed_val)
+        
+        if i is not False:
+            local_origin = self.register_output('local_origin_expanded_'+i, local_origin_exp)
+            local_position = self.register_output('local_position_'+i, local_position)
+            local_radius = self.register_output('local_radius_'+i, local_radius)
+
+            term_1 = self.register_output('term_1_'+i, term_1)
+            term_2_atan = self.register_output('term_2_atan_'+i, term_2_atan)
+            term_2_2 = self.register_output('term_2_2_'+i, term_2_2)
+
+            # self.print_var(local_origin)
+            # self.print_var(local_position)
+            # self.print_var(local_radius)
+            # self.print_var(term_1)            
+            # self.print_var(term_2_atan)            
+            # self.print_var(term_2_2)            
+
+        
+        return transformed_val
         
 
 

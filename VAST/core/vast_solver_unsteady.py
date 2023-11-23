@@ -44,9 +44,12 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.parameters.declare('sub_eval_list',default=None)
         self.parameters.declare('sub_induced_list',default=None)
         self.parameters.declare('sym_struct_list', default=None)
+        self.parameters.declare('rpm', default=None)
+        self.parameters.declare('rpm_dir', default=None)
+        self.parameters.declare('rot_surf_names', default=None)
+        self.parameters.declare('center_point_names', default=False)
         self.parameters.declare('use_polar', default=False)
         self.parameters.declare('polar_bool_list', default=False)
-        self.parameters.declare('prop_center_names', default=False)
 
     def assign_atributes(self):
         self.num_nodes = self.parameters['num_nodes']
@@ -64,9 +67,12 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
         self.sub_eval_list = self.parameters['sub_eval_list']
         self.sub_induced_list = self.parameters['sub_induced_list']
         self.sym_struct_list = self.parameters['sym_struct_list']
+        self.rpm = self.parameters['rpm']
+        self.rpm_dir = self.parameters['rpm_dir']
+        self.rot_surf_names = self.parameters['rot_surf_names']
+        self.center_point_names = self.parameters['center_point_names']
         self.use_polar = self.parameters['use_polar']
         self.polar_bool_list = self.parameters['polar_bool_list']
-        self.prop_center_names = self.parameters['prop_center_names']
     def evaluate(self):
         self.assign_atributes()
         num_nodes = self.num_nodes
@@ -96,7 +102,7 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
             nx = surface_shape[0]
             ny = surface_shape[1]
             self.ode_parameters.append(surface_name)
-            self.ode_parameters.append(f'{surface_name}_velocity')
+            # self.ode_parameters.append(f'{surface_name}_velocity')
             if not self.free_wake:
                 self.ode_parameters.append(surface_name + '_coll_vel')
 
@@ -126,6 +132,11 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
             self.residual_names.append((gamma_w_name,dgammaw_dt_name,(num_nodes-1, ny-1)))
             self.residual_names.append((wing_wake_coords_name,dwake_coords_dt_name,(num_nodes-1,ny,3)))
 
+        for center_point in set(self.center_point_names):
+            self.ode_parameters.append(center_point)
+            print(center_point)
+        # exit()
+
         self.inputs = {}
         self.arguments = {}
 
@@ -146,9 +157,12 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
                                sub_eval_list = self.sub_eval_list,
                                sub_induced_list = self.sub_induced_list,
                                sym_struct_list=self.sym_struct_list,
+                               rpm=self.rpm,
+                               rpm_dir=self.rpm_dir,
+                               rot_surf_names=self.rot_surf_names,
+                               center_point_names=self.center_point_names,
                                use_polar=self.use_polar,
                                polar_bool_list=self.polar_bool_list,
-                               prop_center_names=self.prop_center_names
                                )
         return model
 

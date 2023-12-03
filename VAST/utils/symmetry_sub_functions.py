@@ -139,12 +139,31 @@ def generate_symmetry_groups(sym_struct_list, bd_coll_pts_names, full_aic_name):
                                 ref_axis = 'z'
 
                             interaction_groups_dict[interaction_groups[0]] = {
-                                'reflection' :interaction_groups[1:],
+                                'reflection' : interaction_groups[1:],
                                 'axis': interaction_axes,
                                 'ref_axis': ref_axis
                             }
-                    elif len(inner_surfaces) == 2:
-                        pass
+                    elif len(inner_surfaces) == 2: # 2 sets of surfaces reflected across y
+                        for k, loop_surf in enumerate(inner_surfaces):
+                            loop_surf_ind = inner_surfaces.index(loop_surf)
+
+                            interaction_groups = []
+                            interaction_groups.append((surf, loop_surf))
+
+                            if k == 0:
+                                ref_axis = 'plane'
+                                interaction_groups.append((outer_surf_list[1], inner_surfaces[1]))
+                            elif k == 1:
+                                ref_axis = 'y'
+                                interaction_groups.append((outer_surf_list[1], inner_surfaces[0]))
+
+                            interaction_axes = ['y']
+
+                            interaction_groups_dict[interaction_groups[0]] = {
+                                'reflection' : interaction_groups[1:],
+                                'axis': interaction_axes,
+                                'ref_axis': ref_axis
+                            }
 
                 elif len(outer_surf_list) == 4:
                     if len(inner_surfaces) == 2:

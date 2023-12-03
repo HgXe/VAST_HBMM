@@ -454,9 +454,6 @@ class ProfileOPModel4(csdl.Model):
             #     self.register_output(f'{surface_name}_coll_vel', rotor_mesh * 1)
 
         # I DID THIS (LUCA SCOTZNIOVSKY)
-        print(center_point_names)
-        print(rot_surf_names)
-        # exit()
         if rpm is not None:
             for i, rot_surf_name in enumerate(rot_surf_names):
                 surf_index = surface_names.index(rot_surf_name) # index of surface in full surface list
@@ -468,21 +465,24 @@ class ProfileOPModel4(csdl.Model):
                 local_origin = self.declare_variable(center_point_names[i], shape=(3,)) # THIS GETS CONNECTED 
                 local_origin_exp = csdl.expand(local_origin, coll_coords.shape, 'i->abci')
                 local_position = coll_coords - local_origin_exp
-                radius = csdl.reshape(csdl.pnorm(local_position, axis=3), (coll_coords.shape[:3]) + (1,))
-                coll_tangential_vel = radius * rpm[i] *2*np.pi/60.
 
-                # if np.mod(i,2) == 0:
-                #     self.print_var(local_origin)
-                #     self.print_var(coll_coords)
-                #     self.print_var(radius)
+                # # OLD METHOD USING ATAN2 AND HAVING THE X-VELOCITY BE ZERO
+                # radius = csdl.reshape(csdl.pnorm(local_position, axis=3), (coll_coords.shape[:3]) + (1,))
+                # coll_tangential_vel = radius * rpm[i] *2*np.pi/60.
+                # theta = atan2_switch(x=local_position[:,:,:,1], y=local_position[:,:,:,2])
+                # coll_vel = self.create_output(f'{rot_surf_name}_coll_vel', val=0., shape=coll_coords.shape)
+                # coll_vel[:,:,:,1] = coll_tangential_vel*csdl.sin(theta) * rpm_dir[i]
+                # coll_vel[:,:,:,2] = -coll_tangential_vel*csdl.cos(theta) * rpm_dir[i]
 
-                theta = atan2_switch(x=local_position[:,:,:,1], y=local_position[:,:,:,2])
-                coll_vel = self.create_output(f'{rot_surf_name}_coll_vel', val=0., shape=coll_coords.shape)
-                coll_vel[:,:,:,1] = coll_tangential_vel*csdl.sin(theta) * rpm_dir[i]
-                coll_vel[:,:,:,2] = -coll_tangential_vel*csdl.cos(theta) * rpm_dir[i]
-                # self.print_var(local_position)
-                # self.print_var(radius)
-                # self.print_var(coll_vel)
+                # NEW METHOD USING CROSS PRODUCT OF OMEGA AND R
+                thrust_vector = csdl.expand(
+                    self.declare_variable(f'{center_point_names[i]}_thrust_vector', val=0., shape=(3,)),
+                    local_position.shape,
+                    'i->abci'
+                )
+                coll_vel = csdl.cross(thrust_vector, local_position, axis=3) * rpm[i] * rpm_dir[i] * 2 * np.pi/60
+                self.register_output(f'{rot_surf_name}_coll_vel', coll_vel)
+
 
         self.add(CombineGammaW(surface_names=surface_names, surface_shapes=ode_surface_shapes, n_wake_pts_chord=nt-1),
             name='combine_gamma_w')

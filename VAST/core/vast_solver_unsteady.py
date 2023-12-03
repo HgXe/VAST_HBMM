@@ -136,8 +136,6 @@ class VASTSolverUnsteady(m3l.ImplicitOperation):
 
         for center_point in set(self.center_point_names):
             self.ode_parameters.append(center_point)
-            print(center_point)
-        # exit()
 
         self.inputs = {}
         self.arguments = {}
